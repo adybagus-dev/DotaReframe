@@ -9,6 +9,15 @@ type PageProps = {
   params: Promise<{ matchId: string }>;
 };
 
+const roleOptions = ["Carry", "Mid", "Offlane", "Soft Support", "Hard Support"];
+
+function defaultRole(role?: string) {
+  if (role === "Safe Lane") return "Carry";
+  if (role === "Mid Lane") return "Mid";
+  if (role === "Off Lane") return "Offlane";
+  return "";
+}
+
 export default async function PlayerSelectionPage({ params }: PageProps) {
   const { matchId } = await params;
   const players = await getPlayers(matchId);
@@ -76,7 +85,11 @@ function TeamColumn({
       </h2>
       <div className="player-grid">
         {players.map((player) => (
-          <Link className="player-card" href={`/match/${matchId}/report/${player.player_slot}`} key={player.player_slot}>
+          <form
+            action={`/match/${matchId}/report/${player.player_slot}`}
+            className="player-card"
+            key={player.player_slot}
+          >
             <div className={`hero-avatar ${tone}`}>{player.hero.slice(0, 1)}</div>
             <div className="player-main">
               <h3>{player.hero}</h3>
@@ -88,11 +101,24 @@ function TeamColumn({
               <span>KDA: {player.kda}</span>
               <span>GPM: {player.gpm}</span>
             </div>
-            <div className="player-action">
-              Review This Player
+            <label className="role-picker">
+              <span>Review this hero as</span>
+              <select name="role" defaultValue={defaultRole(player.role)} required>
+                <option value="" disabled>
+                  Choose role
+                </option>
+                {roleOptions.map((role) => (
+                  <option value={role} key={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="player-action" type="submit">
+              Review This Role
               <ChevronRight size={16} aria-hidden />
-            </div>
-          </Link>
+            </button>
+          </form>
         ))}
       </div>
     </section>

@@ -31,7 +31,7 @@ export function ReportView({
           <span className="eyebrow">{savedDetail ? `Saved report / ${report.created_at}` : "Review Report"}</span>
           <h1>{report.hero} Review</h1>
           <p>
-            You played {report.hero}. Here is the clearest thing to fix and what to practice next.
+            You played {report.hero} as {report.role}. Here is the clearest thing to fix and what to practice next.
           </p>
         </div>
         <div className="heading-actions">
@@ -44,6 +44,7 @@ export function ReportView({
 
       <section className="summary-grid" aria-label="Match summary">
         <MetricCard label="Result" value={report.result} />
+        <MetricCard label="Role" value={report.role} />
         <MetricCard label="Duration" value={`${report.summary.duration_minutes}m`} />
         <MetricCard label="KDA" value={report.summary.kda} />
         <MetricCard label="GPM" value={String(report.summary.gpm)} />

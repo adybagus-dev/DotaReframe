@@ -1,9 +1,12 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
 class ReportCreateRequest(BaseModel):
     match_id: int = Field(gt=0)
     player_slot: int
+    role: Optional[str] = None
 
 
 class ReportSummary(BaseModel):

@@ -39,6 +39,14 @@ LANE_ROLE = {
     4: "Jungle"
 }
 
+ROLE_OPTIONS = {"Carry", "Mid", "Offlane", "Soft Support", "Hard Support"}
+
+LANE_TO_REVIEW_ROLE = {
+    "Safe Lane": "Carry",
+    "Mid Lane": "Mid",
+    "Off Lane": "Offlane",
+}
+
 
 def hero_name(hero_id: Optional[int]) -> str:
     return HERO_NAMES.get(hero_id or 0, f"Hero {hero_id or 'Unknown'}")
@@ -53,6 +61,14 @@ def player_result(match: dict, player_slot: int) -> str:
     team = player_team(player_slot)
     won = (team == "Radiant" and radiant_win) or (team == "Dire" and not radiant_win)
     return "Won" if won else "Lost"
+
+
+def review_role(selected_role: Optional[str], lane_role: Optional[str]) -> str:
+    if selected_role in ROLE_OPTIONS:
+        return selected_role
+    if lane_role in LANE_TO_REVIEW_ROLE:
+        return LANE_TO_REVIEW_ROLE[lane_role]
+    return "Unknown Role"
 
 
 def kda(player: dict) -> str:
@@ -78,7 +94,7 @@ def build_player_list(match: dict) -> list[dict]:
     return players
 
 
-def calculate_player_metrics(match: dict, player_slot: int) -> dict:
+def calculate_player_metrics(match: dict, player_slot: int, selected_role: Optional[str] = None) -> dict:
     player = next((item for item in match.get("players", []) if int(item.get("player_slot", -1)) == player_slot), None)
     if player is None:
         raise ValueError("Player slot not found in match")
@@ -93,11 +109,14 @@ def calculate_player_metrics(match: dict, player_slot: int) -> dict:
     if team_kills:
         participation = round((player.get("kills", 0) + player.get("assists", 0)) / team_kills * 100)
 
+    lane_role = LANE_ROLE.get(player.get("lane_role"))
+
     return {
         "match_id": int(match.get("match_id", 0)),
         "player_slot": player_slot,
         "hero": hero_name(player.get("hero_id")),
-        "role": LANE_ROLE.get(player.get("lane_role")) or "Unknown Role",
+        "role": review_role(selected_role, lane_role),
+        "detected_lane_role": lane_role or "Unknown Lane",
         "result": player_result(match, player_slot),
         "duration_minutes": duration_minutes,
         "kills": int(player.get("kills") or 0),

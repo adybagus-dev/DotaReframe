@@ -508,6 +508,38 @@ input {
   transform: translateY(-1px);
 }
 
+.role-picker {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.role-picker span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.role-picker select {
+  appearance: none;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  min-height: 42px;
+  outline: none;
+  padding: 0 12px;
+}
+
+.role-picker select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
 .hero-avatar {
   align-items: center;
   border-radius: 8px;
@@ -564,16 +596,27 @@ input {
 .player-action {
   align-items: center;
   border-top: 1px solid var(--line);
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: transparent;
   color: var(--blue);
+  cursor: pointer;
   display: flex;
   font-size: 14px;
   font-weight: 800;
   justify-content: space-between;
   padding-top: 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.player-action:hover {
+  color: var(--blue-dark);
 }
 
 .summary-grid {
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 
 .metric-card {

@@ -45,7 +45,7 @@ async def get_match_players(match_id: int) -> dict:
 @app.post("/reports")
 async def create_report(request: ReportCreateRequest) -> dict:
     match = await get_match(request.match_id)
-    metrics = calculate_player_metrics(match, request.player_slot)
+    metrics = calculate_player_metrics(match, request.player_slot, request.role)
     report = generate_report(match, metrics)
     save_warning = None
 

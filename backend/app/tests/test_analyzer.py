@@ -44,3 +44,10 @@ def test_calculate_player_metrics() -> None:
     assert metrics["hero"] == "Juggernaut"
     assert metrics["gpm"] == 512
     assert metrics["tower_damage"] == 1240
+
+
+def test_calculate_player_metrics_uses_selected_role() -> None:
+    metrics = calculate_player_metrics(sample_match(), 0, "Hard Support")
+
+    assert metrics["role"] == "Hard Support"
+    assert metrics["detected_lane_role"] == "Safe Lane"
