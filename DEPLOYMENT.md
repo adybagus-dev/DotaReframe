@@ -3,8 +3,8 @@
 Recommended free MVP setup:
 
 ```text
-Frontend: Vercel
-Backend: Render Web Service
+Frontend: Vercel Project
+Backend: Vercel Project
 Database: Supabase Postgres
 ```
 
@@ -19,19 +19,17 @@ Database: Supabase Postgres
 postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres?sslmode=require
 ```
 
-The backend creates the `reports` table automatically on startup.
+The backend creates the `reports` table automatically when needed.
 
-## 2. Render Backend
+## 2. Vercel Backend
 
-Create a Render Web Service from this GitHub repo.
+Create a Vercel project from this GitHub repo.
 
 Use these settings:
 
 ```text
-Root Directory: .
-Runtime: Python
-Build Command: pip install -r backend/requirements.txt
-Start Command: PYTHONPATH=backend uvicorn app.main:app --host 0.0.0.0 --port $PORT
+Framework Preset: Other
+Root Directory: backend
 ```
 
 Environment variables:
@@ -44,7 +42,7 @@ FRONTEND_ORIGINS=https://your-vercel-app.vercel.app
 After deploy, test:
 
 ```text
-https://your-render-service.onrender.com/health
+https://your-vercel-api.vercel.app/health
 ```
 
 Expected response:
@@ -55,7 +53,7 @@ Expected response:
 
 ## 3. Vercel Frontend
 
-Create a Vercel project from this GitHub repo.
+Create a second Vercel project from the same GitHub repo.
 
 Use these settings:
 
@@ -69,14 +67,14 @@ Output Directory: .next
 Environment variable:
 
 ```text
-BACKEND_URL=https://your-render-service.onrender.com
+BACKEND_URL=https://your-vercel-api.vercel.app
 ```
 
-After Vercel gives you a production URL, copy it into Render's `FRONTEND_ORIGINS` and redeploy the backend.
+After the frontend deploys, set its production URL as the backend project's `FRONTEND_ORIGINS`, then redeploy the backend.
 
 ## Notes
 
 - Local development still uses SQLite when `DATABASE_URL` is not set.
-- Production should use Supabase Postgres because Render free web services have an ephemeral filesystem.
-- Render free services sleep after idle time, so the first request can be slow.
-- The frontend has sample fallback data if the backend is unreachable, but production should point `BACKEND_URL` to Render.
+- Production uses Supabase Postgres because serverless function filesystems are not durable application storage.
+- The frontend has sample fallback data if the backend is unreachable, but production should point `BACKEND_URL` to the Vercel backend project.
+- Keep the frontend and backend as separate Vercel projects with `frontend` and `backend` as their respective root directories.
