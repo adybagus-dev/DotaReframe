@@ -508,6 +508,12 @@ input {
   transform: translateY(-1px);
 }
 
+.player-card.is-loading {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+  pointer-events: none;
+}
+
 .role-picker {
   display: grid;
   gap: 8px;
@@ -613,6 +619,101 @@ input {
 
 .player-action:hover {
   color: var(--blue-dark);
+}
+
+.player-action:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.loading-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+}
+
+.loading-message {
+  align-items: center;
+  background: var(--blue-soft);
+  border-radius: 8px;
+  color: var(--blue);
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+}
+
+.loading-message strong,
+.loading-message span {
+  display: block;
+}
+
+.loading-message span {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.loading-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.loading-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 52px minmax(0, 1fr);
+  min-height: 116px;
+  padding: 16px;
+}
+
+.loading-card > div {
+  align-content: center;
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton {
+  animation: pulse 1.4s ease-in-out infinite;
+  background: var(--panel-soft);
+  border-radius: 6px;
+  display: block;
+}
+
+.skeleton-avatar {
+  height: 52px;
+  width: 52px;
+}
+
+.skeleton-title {
+  height: 16px;
+  width: 42%;
+}
+
+.skeleton-line {
+  height: 11px;
+  width: 88%;
+}
+
+.skeleton-line.short {
+  width: 60%;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .summary-grid {
@@ -1016,7 +1117,8 @@ input {
 
   .summary-grid,
   .performance-grid,
-  .state-grid {
+  .state-grid,
+  .loading-grid {
     grid-template-columns: 1fr;
   }
 

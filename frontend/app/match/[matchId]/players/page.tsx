@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { AlertTriangle, ChevronRight, Clock, Users } from "lucide-react";
+import { AlertTriangle, Clock, Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { PlayerReviewForm } from "@/components/player-review-form";
 import { StatusPill } from "@/components/ui";
 import { getPlayers } from "@/lib/api";
 import type { PlayerSummary } from "@/lib/types";
@@ -8,15 +9,6 @@ import type { PlayerSummary } from "@/lib/types";
 type PageProps = {
   params: Promise<{ matchId: string }>;
 };
-
-const roleOptions = ["Carry", "Mid", "Offlane", "Soft Support", "Hard Support"];
-
-function defaultRole(role?: string) {
-  if (role === "Safe Lane") return "Carry";
-  if (role === "Mid Lane") return "Mid";
-  if (role === "Off Lane") return "Offlane";
-  return "";
-}
 
 export default async function PlayerSelectionPage({ params }: PageProps) {
   const { matchId } = await params;
@@ -85,40 +77,12 @@ function TeamColumn({
       </h2>
       <div className="player-grid">
         {players.map((player) => (
-          <form
-            action={`/match/${matchId}/report/${player.player_slot}`}
-            className="player-card"
+          <PlayerReviewForm
+            player={player}
+            matchId={matchId}
+            tone={tone}
             key={player.player_slot}
-          >
-            <div className={`hero-avatar ${tone}`}>{player.hero.slice(0, 1)}</div>
-            <div className="player-main">
-              <h3>{player.hero}</h3>
-              <p>
-                {player.team} · {player.result}
-              </p>
-            </div>
-            <div className="player-stats">
-              <span>KDA: {player.kda}</span>
-              <span>GPM: {player.gpm}</span>
-            </div>
-            <label className="role-picker">
-              <span>Review this hero as</span>
-              <select name="role" defaultValue={defaultRole(player.role)} required>
-                <option value="" disabled>
-                  Choose role
-                </option>
-                {roleOptions.map((role) => (
-                  <option value={role} key={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button className="player-action" type="submit">
-              Review This Role
-              <ChevronRight size={16} aria-hidden />
-            </button>
-          </form>
+          />
         ))}
       </div>
     </section>
