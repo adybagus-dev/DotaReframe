@@ -7,7 +7,7 @@ from app.schemas.report import ReportCreateRequest
 from app.services.analyzer import build_player_list, calculate_player_metrics
 from app.services.coach import generate_report
 from app.services.opendota import fetch_match
-from app.services.storage import get_report, init_db, list_reports, save_report
+from app.services.storage import database_backend, get_report, init_db, list_reports, save_report
 
 app = FastAPI(title="DotaReframe API", version="0.1.0")
 
@@ -30,7 +30,7 @@ def startup() -> None:
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "database": database_backend()}
 
 
 @app.get("/matches/{match_id}")

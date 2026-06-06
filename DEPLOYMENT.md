@@ -35,6 +35,7 @@ Root Directory: backend
 Environment variables:
 
 ```text
+DATABASE_MODE=postgres
 DATABASE_URL=<your Supabase Postgres URL>
 FRONTEND_ORIGINS=https://your-vercel-app.vercel.app
 ```
@@ -48,7 +49,7 @@ https://your-vercel-api.vercel.app/health
 Expected response:
 
 ```json
-{"status":"ok"}
+{"status":"ok","database":"postgres"}
 ```
 
 ## 3. Vercel Frontend
@@ -74,7 +75,24 @@ After the frontend deploys, set its production URL as the backend project's `FRO
 
 ## Notes
 
-- Local development still uses SQLite when `DATABASE_URL` is not set.
+- Local development defaults to SQLite, even if `DATABASE_URL` exists in the shell.
+- `DATABASE_MODE=postgres` must be explicitly set before the backend can use Supabase.
 - Production uses Supabase Postgres because serverless function filesystems are not durable application storage.
 - The frontend has sample fallback data if the backend is unreachable, but production should point `BACKEND_URL` to the Vercel backend project.
 - Keep the frontend and backend as separate Vercel projects with `frontend` and `backend` as their respective root directories.
+
+## Local Database Modes
+
+Normal local development uses SQLite:
+
+```text
+./scripts/run-backend-local.sh
+```
+
+An intentional Supabase integration test uses the ignored `.env.supabase.local` file:
+
+```text
+./scripts/run-backend-supabase.sh
+```
+
+Check `http://localhost:8000/health`. The `database` value will be either `sqlite` or `postgres`.

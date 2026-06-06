@@ -8,25 +8,33 @@ from typing import Iterator, Optional
 from app.schemas.report import CoachingReport
 
 DB_PATH = Path(__file__).resolve().parents[2] / "dotareframe.sqlite3"
-DATABASE_URL = os.getenv("DATABASE_URL")
+SUPPORTED_DATABASE_MODES = {"sqlite", "postgres"}
 
 
 def connect() -> sqlite3.Connection:
     return sqlite3.connect(DB_PATH)
 
 
+def database_backend() -> str:
+    mode = os.getenv("DATABASE_MODE", "sqlite").strip().lower()
+    if mode not in SUPPORTED_DATABASE_MODES:
+        raise RuntimeError("DATABASE_MODE must be either 'sqlite' or 'postgres'")
+    return mode
+
+
 def using_postgres() -> bool:
-    return bool(DATABASE_URL)
+    return database_backend() == "postgres"
 
 
 @contextmanager
 def postgres_connect() -> Iterator:
-    if DATABASE_URL is None:
-        raise RuntimeError("DATABASE_URL is not configured")
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is required when DATABASE_MODE=postgres")
 
     import psycopg
 
-    with psycopg.connect(DATABASE_URL) as db:
+    with psycopg.connect(database_url) as db:
         yield db
 
 
