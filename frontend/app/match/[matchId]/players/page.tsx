@@ -1,17 +1,18 @@
 import Link from "next/link";
-import { AlertTriangle, Clock, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { PlayerReviewForm } from "@/components/player-review-form";
-import { StatusPill } from "@/components/ui";
 import { getPlayers } from "@/lib/api";
 import type { PlayerSummary } from "@/lib/types";
 
 type PageProps = {
   params: Promise<{ matchId: string }>;
+  searchParams: Promise<{ accountId?: string }>;
 };
 
-export default async function PlayerSelectionPage({ params }: PageProps) {
+export default async function PlayerSelectionPage({ params, searchParams }: PageProps) {
   const { matchId } = await params;
+  const { accountId } = await searchParams;
   const players = await getPlayers(matchId);
   const radiant = players.filter((player) => player.team === "Radiant");
   const dire = players.filter((player) => player.team === "Dire");
@@ -33,25 +34,13 @@ export default async function PlayerSelectionPage({ params }: PageProps) {
         <section className="match-strip">
           <div>
             <span>Match {matchId}</span>
-            <strong>
-              <Clock size={18} aria-hidden />
-              42 min
-            </strong>
+            <strong>{players.length} players found</strong>
           </div>
-          <div>
-            <StatusPill tone="risk">Radiant lost</StatusPill>
-            <StatusPill tone="good">Dire won</StatusPill>
-          </div>
-        </section>
-
-        <section className="incomplete-note">
-          <AlertTriangle size={18} aria-hidden />
-          If OpenDota returns incomplete data, show a clear note and keep the cards readable.
         </section>
 
         <div className="team-grid">
-          <TeamColumn title="Radiant" tone="radiant" players={radiant} matchId={matchId} />
-          <TeamColumn title="Dire" tone="dire" players={dire} matchId={matchId} />
+          <TeamColumn title="Radiant" tone="radiant" players={radiant} matchId={matchId} accountId={accountId} />
+          <TeamColumn title="Dire" tone="dire" players={dire} matchId={matchId} accountId={accountId} />
         </div>
       </div>
     </AppShell>
@@ -62,12 +51,14 @@ function TeamColumn({
   title,
   tone,
   players,
-  matchId
+  matchId,
+  accountId
 }: {
   title: string;
   tone: "radiant" | "dire";
   players: PlayerSummary[];
   matchId: string;
+  accountId?: string;
 }) {
   return (
     <section className="team-column">
@@ -81,6 +72,7 @@ function TeamColumn({
             player={player}
             matchId={matchId}
             tone={tone}
+            accountId={accountId}
             key={player.player_slot}
           />
         ))}

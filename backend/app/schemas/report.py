@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -7,6 +7,7 @@ class ReportCreateRequest(BaseModel):
     match_id: int = Field(gt=0)
     player_slot: int
     role: Optional[str] = None
+    account_id: Optional[int] = Field(default=None, gt=0)
 
 
 class ReportSummary(BaseModel):
@@ -41,6 +42,42 @@ class PracticeDrill(BaseModel):
     how_to_practice: str
 
 
+class ComparisonContext(BaseModel):
+    role: str
+    hero: str
+    duration_bucket: str
+    rank_label: Optional[str] = None
+    patch: Optional[str] = None
+    baseline: str
+
+
+class NextMatchMission(BaseModel):
+    title: str
+    metric: Literal["deaths", "gpm", "tower_damage", "kill_participation"]
+    target: int
+    direction: Literal["at_most", "at_least"]
+    explanation: str
+    check_text: str
+
+
+class TimelineEvent(BaseModel):
+    minute: int = Field(ge=0)
+    category: Literal["death", "item", "objective", "fight"]
+    title: str
+    detail: str
+    tone: Literal["good", "warning", "risk", "info"] = "info"
+
+
+class ProgressComparison(BaseModel):
+    previous_report_id: str
+    previous_match_id: int
+    mission_title: str
+    completed: bool
+    previous_value: int
+    current_value: int
+    message: str
+
+
 class CoachingReport(BaseModel):
     id: str
     match_id: int
@@ -64,3 +101,8 @@ class CoachingReport(BaseModel):
     match_evidence: list[str]
     confidence: str
     limitations: list[str]
+    account_id: Optional[int] = None
+    comparison_context: Optional[ComparisonContext] = None
+    next_match_mission: Optional[NextMatchMission] = None
+    timeline: list[TimelineEvent] = Field(default_factory=list)
+    progress: Optional[ProgressComparison] = None

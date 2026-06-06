@@ -1,6 +1,18 @@
+from __future__ import annotations
+
 from datetime import date
 
-from app.schemas.report import CoachingReport, Mistake, PracticeDrill, ReportSummary, TimingNote
+from app.schemas.report import (
+    CoachingReport,
+    ComparisonContext,
+    Mistake,
+    NextMatchMission,
+    PracticeDrill,
+    ProgressComparison,
+    ReportSummary,
+    TimelineEvent,
+    TimingNote,
+)
 
 
 ROLE_PROFILES = {
@@ -55,7 +67,7 @@ def _role_slug(role: str) -> str:
     return role.lower().replace(" ", "-")
 
 
-def generate_report(match: dict, metrics: dict) -> CoachingReport:
+def generate_report(match: dict, metrics: dict, previous_reports: list[dict] | None = None) -> CoachingReport:
     mistakes = _mistakes(metrics)
     main = mistakes[0]
     summary = ReportSummary(
@@ -99,9 +111,192 @@ def generate_report(match: dict, metrics: dict) -> CoachingReport:
         ],
         confidence="medium",
         limitations=[
-            "This review is based on match stats and may not fully understand positioning, voice calls, or team strategy."
+            "This review is based on available OpenDota data and may not fully understand positioning, voice calls, or team strategy."
         ],
+        account_id=metrics.get("account_id"),
+        comparison_context=_comparison_context(metrics),
+        next_match_mission=_next_match_mission(metrics),
+        timeline=_timeline(metrics),
+        progress=_progress(metrics, previous_reports or []),
     )
+
+
+def _duration_bucket(minutes: int) -> str:
+    if minutes < 30:
+        return "short match (under 30 minutes)"
+    if minutes < 45:
+        return "standard match (30-44 minutes)"
+    return "long match (45+ minutes)"
+
+
+def _rank_label(rank_tier: int | None) -> str | None:
+    if not rank_tier:
+        return None
+    medals = {
+        1: "Herald",
+        2: "Guardian",
+        3: "Crusader",
+        4: "Archon",
+        5: "Legend",
+        6: "Ancient",
+        7: "Divine",
+        8: "Immortal",
+    }
+    medal = medals.get(rank_tier // 10)
+    return f"{medal} bracket" if medal else f"Rank tier {rank_tier}"
+
+
+def _comparison_context(metrics: dict) -> ComparisonContext:
+    profile = _profile(metrics)
+    return ComparisonContext(
+        role=metrics["role"],
+        hero=metrics["hero"],
+        duration_bucket=_duration_bucket(metrics["duration_minutes"]),
+        rank_label=_rank_label(metrics.get("rank_tier")),
+        patch=f"Patch ID {metrics['patch']}" if metrics.get("patch") is not None else None,
+        baseline=(
+            f"Compared with a practical {metrics['role']} baseline: about {profile['gpm']} GPM, "
+            f"{profile['tower_damage']} tower damage, and fewer than {profile['deaths']} deaths."
+        ),
+    )
+
+
+def _next_match_mission(metrics: dict) -> NextMatchMission:
+    profile = _profile(metrics)
+    if metrics["deaths"] >= profile["deaths"]:
+        target = max(3, min(profile["deaths"] - 1, metrics["deaths"] - 2))
+        return NextMatchMission(
+            title=f"Finish with {target} deaths or fewer",
+            metric="deaths",
+            target=target,
+            direction="at_most",
+            explanation="Staying alive protects your item timing, map pressure, and ability to join the next objective.",
+            check_text=f"After the match, check whether deaths are {target} or lower.",
+        )
+    if metrics["gpm"] < profile["gpm"]:
+        target = min(profile["gpm"], metrics["gpm"] + 40)
+        return NextMatchMission(
+            title=f"Reach at least {target} GPM",
+            metric="gpm",
+            target=target,
+            direction="at_least",
+            explanation=f"This is a small, role-aware step toward a healthier {metrics['role']} resource pace.",
+            check_text=f"After the match, check whether GPM reached {target}.",
+        )
+    if metrics.get("is_parsed"):
+        target = max(profile["tower_damage"], metrics["tower_damage"] + 300)
+        return NextMatchMission(
+            title=f"Create {target}+ tower damage",
+            metric="tower_damage",
+            target=target,
+            direction="at_least",
+            explanation="This turns useful fights into map control instead of ending with kills alone.",
+            check_text=f"After the match, check whether tower damage reached {target}.",
+        )
+    target = max(3, metrics["deaths"])
+    return NextMatchMission(
+        title=f"Keep deaths at {target} or fewer again",
+        metric="deaths",
+        target=target,
+        direction="at_most",
+        explanation="OpenDota has basic data for this match, so survival is the clearest measurable habit to repeat.",
+        check_text=f"After the match, check whether deaths are {target} or lower.",
+    )
+
+
+def _timeline(metrics: dict) -> list[TimelineEvent]:
+    events: list[TimelineEvent] = []
+    for purchase in metrics.get("purchase_log", []):
+        time = int(purchase.get("time") or 0)
+        if time < 0:
+            continue
+        item = str(purchase.get("key") or "item").replace("_", " ").title()
+        events.append(
+            TimelineEvent(
+                minute=time // 60,
+                category="item",
+                title=f"Bought {item}",
+                detail="Item timing from parsed match data.",
+                tone="info",
+            )
+        )
+
+    player_index = metrics["player_slot"] if metrics["player_slot"] < 128 else metrics["player_slot"] - 128
+    for fight in metrics.get("teamfights", []):
+        players = fight.get("players") or []
+        if player_index >= len(players):
+            continue
+        player_fight = players[player_index] or {}
+        deaths = int(player_fight.get("deaths") or 0)
+        if deaths:
+            events.append(
+                TimelineEvent(
+                    minute=max(0, int(fight.get("start") or 0) // 60),
+                    category="death",
+                    title="Died during a teamfight",
+                    detail=f"OpenDota recorded {deaths} death in this fight window.",
+                    tone="risk",
+                )
+            )
+
+    for objective in metrics.get("objectives", []):
+        objective_type = str(objective.get("type") or "")
+        if objective_type not in {"CHAT_MESSAGE_TOWER_KILL", "CHAT_MESSAGE_ROSHAN_KILL"}:
+            continue
+        label = "Tower taken" if "TOWER" in objective_type else "Roshan taken"
+        events.append(
+            TimelineEvent(
+                minute=max(0, int(objective.get("time") or 0) // 60),
+                category="objective",
+                title=label,
+                detail="Objective event from parsed match data.",
+                tone="good",
+            )
+        )
+
+    events.sort(key=lambda event: event.minute)
+    return events[:12]
+
+
+def _metric_value(report_or_metrics: dict, metric: str) -> int:
+    summary = report_or_metrics.get("summary") or report_or_metrics
+    if metric == "kill_participation":
+        return int(report_or_metrics.get("kill_participation") or 0)
+    return int(summary.get(metric) or 0)
+
+
+def _progress(metrics: dict, previous_reports: list[dict]) -> ProgressComparison | None:
+    for previous in previous_reports:
+        if previous.get("match_id") == metrics["match_id"]:
+            continue
+        if previous.get("role") != metrics["role"]:
+            continue
+        if metrics.get("account_id") and previous.get("account_id") not in {None, metrics["account_id"]}:
+            continue
+        mission = previous.get("next_match_mission")
+        if not mission:
+            continue
+        metric = mission.get("metric")
+        if metric == "tower_damage" and not metrics.get("is_parsed"):
+            continue
+        target = int(mission.get("target") or 0)
+        current_value = _metric_value(metrics, metric)
+        previous_value = _metric_value(previous, metric)
+        completed = current_value <= target if mission.get("direction") == "at_most" else current_value >= target
+        return ProgressComparison(
+            previous_report_id=previous["id"],
+            previous_match_id=int(previous["match_id"]),
+            mission_title=mission["title"],
+            completed=completed,
+            previous_value=previous_value,
+            current_value=current_value,
+            message=(
+                f"Mission complete. Your {metric.replace('_', ' ')} moved from {previous_value} to {current_value}."
+                if completed
+                else f"Still in progress. Your {metric.replace('_', ' ')} moved from {previous_value} to {current_value}; target: {target}."
+            ),
+        )
+    return None
 
 
 def _match_story(metrics: dict) -> str:

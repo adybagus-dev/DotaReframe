@@ -17,11 +17,13 @@ function defaultRole(role?: string) {
 export function PlayerReviewForm({
   player,
   matchId,
-  tone
+  tone,
+  accountId
 }: {
   player: PlayerSummary;
   matchId: string;
   tone: "radiant" | "dire";
+  accountId?: string;
 }) {
   const router = useRouter();
   const [role, setRole] = useState(defaultRole(player.role));
@@ -31,7 +33,9 @@ export function PlayerReviewForm({
     event.preventDefault();
     if (!role || loading) return;
     setLoading(true);
-    router.push(`/match/${matchId}/report/${player.player_slot}?role=${encodeURIComponent(role)}`);
+    const query = new URLSearchParams({ role });
+    if (accountId) query.set("accountId", accountId);
+    router.push(`/match/${matchId}/report/${player.player_slot}?${query.toString()}`);
   }
 
   return (

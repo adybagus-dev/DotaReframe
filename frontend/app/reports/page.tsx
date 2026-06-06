@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Archive, CalendarDays, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ButtonLink, EmptyState, StatusPill } from "@/components/ui";
 import { getSavedReports } from "@/lib/api";
@@ -16,7 +16,7 @@ export default async function ReportsPage() {
           <div>
             <span className="eyebrow">Saved Reports</span>
             <h1>Saved Match Reviews</h1>
-            <p>Reopen coaching reports saved on this machine.</p>
+            <p>Reopen your coaching history and check whether the same problem keeps appearing.</p>
           </div>
           <ButtonLink href="/match" variant="secondary">
             Analyze Another Match
@@ -64,12 +64,6 @@ export default async function ReportsPage() {
             ))}
           </section>
         )}
-
-        <section className="empty-state compact">
-          <Archive size={24} aria-hidden />
-          <h2>Empty state copy</h2>
-          <p>No saved reports yet. Analyze a match first, then reports will appear here.</p>
-        </section>
       </div>
     </AppShell>
   );

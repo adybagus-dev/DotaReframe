@@ -4,13 +4,13 @@ import { createOrGetReport } from "@/lib/api";
 
 type PageProps = {
   params: Promise<{ matchId: string; playerSlot: string }>;
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; accountId?: string }>;
 };
 
 export default async function GeneratedReportPage({ params, searchParams }: PageProps) {
   const { matchId, playerSlot } = await params;
-  const { role } = await searchParams;
-  const report = await createOrGetReport(matchId, playerSlot, role);
+  const { role, accountId } = await searchParams;
+  const report = await createOrGetReport(matchId, playerSlot, role, accountId);
 
   return (
     <AppShell active="new-review">

@@ -38,6 +38,8 @@ Environment variables:
 DATABASE_MODE=postgres
 DATABASE_URL=<your Supabase Postgres URL>
 FRONTEND_ORIGINS=https://your-vercel-app.vercel.app
+FRONTEND_URL=https://your-vercel-app.vercel.app
+BACKEND_PUBLIC_URL=https://your-vercel-api.vercel.app
 ```
 
 After deploy, test:
@@ -78,7 +80,8 @@ After the frontend deploys, set its production URL as the backend project's `FRO
 - Local development defaults to SQLite, even if `DATABASE_URL` exists in the shell.
 - `DATABASE_MODE=postgres` must be explicitly set before the backend can use Supabase.
 - Production uses Supabase Postgres because serverless function filesystems are not durable application storage.
-- The frontend has sample fallback data if the backend is unreachable, but production should point `BACKEND_URL` to the Vercel backend project.
+- The frontend shows an honest retry screen when the backend or OpenDota is unavailable. Production must point `BACKEND_URL` to the Vercel backend project.
+- `FRONTEND_URL` and `BACKEND_PUBLIC_URL` are required for the Steam OpenID callback.
 - Keep the frontend and backend as separate Vercel projects with `frontend` and `backend` as their respective root directories.
 
 ## Local Database Modes

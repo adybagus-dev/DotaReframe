@@ -42,6 +42,42 @@ export type PracticeDrill = {
   how_to_practice: string;
 };
 
+export type ComparisonContext = {
+  role: string;
+  hero: string;
+  duration_bucket: string;
+  rank_label?: string;
+  patch?: string;
+  baseline: string;
+};
+
+export type NextMatchMission = {
+  title: string;
+  metric: "deaths" | "gpm" | "tower_damage" | "kill_participation";
+  target: number;
+  direction: "at_most" | "at_least";
+  explanation: string;
+  check_text: string;
+};
+
+export type TimelineEvent = {
+  minute: number;
+  category: "death" | "item" | "objective" | "fight";
+  title: string;
+  detail: string;
+  tone: "good" | "warning" | "risk" | "info";
+};
+
+export type ProgressComparison = {
+  previous_report_id: string;
+  previous_match_id: number;
+  mission_title: string;
+  completed: boolean;
+  previous_value: number;
+  current_value: number;
+  message: string;
+};
+
 export type CoachingReport = {
   id: string;
   match_id: number;
@@ -80,6 +116,11 @@ export type CoachingReport = {
   match_evidence: string[];
   confidence: "low" | "medium" | "high";
   limitations: string[];
+  account_id?: number;
+  comparison_context?: ComparisonContext;
+  next_match_mission?: NextMatchMission;
+  timeline?: TimelineEvent[];
+  progress?: ProgressComparison;
 };
 
 export type SavedReportListItem = {
@@ -93,4 +134,14 @@ export type SavedReportListItem = {
   gpm: number;
   main_problem: string;
   confidence: "low" | "medium" | "high";
+};
+
+export type RecentMatch = {
+  match_id: number;
+  player_slot: number;
+  hero: string;
+  result: Result;
+  kda: string;
+  duration_minutes: number;
+  started_at: number;
 };

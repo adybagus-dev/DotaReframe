@@ -177,3 +177,21 @@ def get_report(report_id: str) -> Optional[dict]:
     if row is None:
         return None
     return json.loads(row[0])
+
+
+def list_report_payloads(limit: int = 50) -> list[dict]:
+    init_db()
+    if using_postgres():
+        with postgres_connect() as db:
+            rows = db.execute(
+                "SELECT payload FROM reports ORDER BY created_at DESC LIMIT %s",
+                (limit,),
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    with connect() as db:
+        rows = db.execute(
+            "SELECT payload FROM reports ORDER BY created_at DESC, rowid DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [json.loads(row[0]) for row in rows]

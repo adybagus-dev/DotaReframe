@@ -22,6 +22,9 @@ def sample_match() -> dict:
                 "hero_healing": 0,
                 "level": 24,
                 "lane_role": 1,
+                "account_id": 12345,
+                "rank_tier": 54,
+                "purchase_log": [{"time": 600, "key": "phase_boots"}],
             },
             {"player_slot": 128, "hero_id": 44, "kills": 15, "deaths": 4, "assists": 10, "gold_per_min": 658},
         ],
@@ -44,6 +47,8 @@ def test_calculate_player_metrics() -> None:
     assert metrics["hero"] == "Juggernaut"
     assert metrics["gpm"] == 512
     assert metrics["tower_damage"] == 1240
+    assert metrics["account_id"] == 12345
+    assert metrics["rank_tier"] == 54
 
 
 def test_calculate_player_metrics_uses_selected_role() -> None:

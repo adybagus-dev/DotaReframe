@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { ArrowLeft, Archive, CheckCircle2, ChevronDown, ListChecks, RotateCcw, Target } from "lucide-react";
+import {
+  ArrowLeft,
+  Archive,
+  CheckCircle2,
+  ChevronDown,
+  CircleDot,
+  ListChecks,
+  RotateCcw,
+  Target,
+  TrendingUp
+} from "lucide-react";
 import type { CoachingReport, SnapshotValue } from "@/lib/types";
 import { ButtonLink, StatusPill } from "./ui";
 
@@ -35,7 +45,7 @@ export function ReportView({
           </p>
         </div>
         <div className="heading-actions">
-          <StatusPill tone="good">Saved locally</StatusPill>
+          <StatusPill tone="good">Saved to reports</StatusPill>
           <ButtonLink href="/match" variant="secondary" icon={RotateCcw}>
             Analyze Another Match
           </ButtonLink>
@@ -53,6 +63,51 @@ export function ReportView({
         <MetricCard label="Deaths" value={String(report.summary.deaths)} />
       </section>
 
+      {report.next_match_mission ? (
+        <section className="mission-card">
+          <div className="mission-icon">
+            <Target size={24} aria-hidden />
+          </div>
+          <div>
+            <span>Your next-match mission</span>
+            <h2>{report.next_match_mission.title}</h2>
+            <p>{report.next_match_mission.explanation}</p>
+            <strong>{report.next_match_mission.check_text}</strong>
+          </div>
+        </section>
+      ) : null}
+
+      {report.progress ? (
+        <section className={`progress-card ${report.progress.completed ? "complete" : "active"}`}>
+          <TrendingUp size={22} aria-hidden />
+          <div>
+            <span>{report.progress.completed ? "Previous mission complete" : "Progress from your previous review"}</span>
+            <h2>{report.progress.mission_title}</h2>
+            <p>{report.progress.message}</p>
+          </div>
+          <StatusPill tone={report.progress.completed ? "good" : "warning"}>
+            {report.progress.completed ? "Completed" : "Keep going"}
+          </StatusPill>
+        </section>
+      ) : null}
+
+      {report.comparison_context ? (
+        <section className="context-strip">
+          <div>
+            <span>How this was judged</span>
+            <strong>
+              {report.comparison_context.hero} · {report.comparison_context.role} ·{" "}
+              {report.comparison_context.duration_bucket}
+            </strong>
+          </div>
+          <div className="context-tags">
+            {report.comparison_context.rank_label ? <StatusPill>{report.comparison_context.rank_label}</StatusPill> : null}
+            {report.comparison_context.patch ? <StatusPill>{report.comparison_context.patch}</StatusPill> : null}
+          </div>
+          <p>{report.comparison_context.baseline}</p>
+        </section>
+      ) : null}
+
       <section className="focus-card">
         <div>
           <span>Main thing to fix</span>
@@ -63,6 +118,32 @@ export function ReportView({
           </p>
         </div>
       </section>
+
+      {report.timeline?.length ? (
+        <section className="section-block">
+          <div className="section-heading">
+            <span>Match evidence timeline</span>
+            <h2>What the parsed replay can confirm</h2>
+          </div>
+          <div className="timeline-list">
+            {report.timeline.map((event, index) => (
+              <article className={`timeline-event ${event.tone}`} key={`${event.minute}-${event.title}-${index}`}>
+                <div className="timeline-minute">{event.minute}m</div>
+                <CircleDot size={18} aria-hidden />
+                <div>
+                  <strong>{event.title}</strong>
+                  <p>{event.detail}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="inline-note">
+          <CircleDot size={18} aria-hidden />
+          Detailed event timing was not available for this match, so the report only uses confirmed final statistics.
+        </section>
+      )}
 
       {report.match_story ? (
         <section className="coach-story">
