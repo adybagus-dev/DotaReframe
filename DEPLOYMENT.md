@@ -84,6 +84,27 @@ After the frontend deploys, set its production URL as the backend project's `FRO
 - `FRONTEND_URL` and `BACKEND_PUBLIC_URL` are required for the Steam OpenID callback.
 - Keep the frontend and backend as separate Vercel projects with `frontend` and `backend` as their respective root directories.
 
+## Automatic Production Deployments
+
+The GitHub Actions workflow at `.github/workflows/deploy-production.yml`
+deploys both Vercel projects whenever a commit is pushed to `main`.
+
+One repository secret is required:
+
+```text
+VERCEL_TOKEN=<a Vercel access token>
+```
+
+Create the token in Vercel account settings, then add it in GitHub under:
+
+```text
+Repository Settings > Secrets and variables > Actions > New repository secret
+```
+
+The workflow uses the existing Vercel project IDs. Database and application
+environment variables remain configured in Vercel and are not copied into
+GitHub Actions.
+
 ## Local Database Modes
 
 Normal local development uses SQLite:

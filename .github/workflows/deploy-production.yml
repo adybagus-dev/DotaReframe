@@ -1,0 +1,51 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-backend:
+    name: Deploy FastAPI backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_ORG_ID: team_c3eOzyhgl7SVTlr1lCFLmVol
+      VERCEL_PROJECT_ID: prj_NywuJjP5ynuPtBvzQiL0Gly0d9my
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify deployment credential
+        run: test -n "$VERCEL_TOKEN"
+
+      - name: Deploy backend to production
+        run: npx --yes vercel@54.9.1 deploy --prod --yes --cwd backend --token="$VERCEL_TOKEN"
+
+  deploy-frontend:
+    name: Deploy Next.js frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERCEL_ORG_ID: team_c3eOzyhgl7SVTlr1lCFLmVol
+      VERCEL_PROJECT_ID: prj_03AkGLs6CKAyVAsnarluukc2kNny
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify deployment credential
+        run: test -n "$VERCEL_TOKEN"
+
+      - name: Deploy frontend to production
+        run: npx --yes vercel@54.9.1 deploy --prod --yes --cwd frontend --token="$VERCEL_TOKEN"
