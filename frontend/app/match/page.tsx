@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Clock3,
   Gamepad2,
   Target,
 } from "lucide-react";
@@ -95,6 +96,35 @@ export default async function MatchPage() {
         <div id="manual-review">
           <MatchIdForm connected={connected} />
         </div>
+
+        {connected ? (
+          <section className="section-block">
+            <div className="section-heading">
+              <span>Recent public matches</span>
+              <h2>Open an older match</h2>
+            </div>
+            {recentMatches.length ? (
+              <div className="recent-match-list">
+                {recentMatches.slice(0, 6).map((match) => (
+                  <Link className="recent-match-row" href={`/match/${match.match_id}/review`} key={match.match_id}>
+                    <div className="hero-avatar info">{match.hero.slice(0, 1)}</div>
+                    <div>
+                      <strong>{match.hero}</strong>
+                      <span>Match {match.match_id} · {match.kda}</span>
+                    </div>
+                    <div className="recent-match-meta">
+                      <StatusPill tone={match.result === "Won" ? "good" : "risk"}>{match.result}</StatusPill>
+                      <span><Clock3 size={14} aria-hidden />{match.duration_minutes}m</span>
+                      <ArrowRight size={18} aria-hidden />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="inline-note">No public recent matches were found. You can still paste a match ID below.</div>
+            )}
+          </section>
+        ) : null}
 
         {dashboard.recent_reports.length ? (
           <section className="section-block">
