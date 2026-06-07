@@ -36,12 +36,25 @@ async def _get_json(path: str) -> dict | list:
 
 
 async def fetch_match(match_id: int) -> dict:
-    data = await _get_json(f"/matches/{match_id}")
+    from app.services.storage import get_cached_match, save_cached_match
+
+    cached = get_cached_match(match_id)
+    if cached:
+        return cached
+
+    try:
+        data = await _get_json(f"/matches/{match_id}")
+    except OpenDotaError:
+        stale = get_cached_match(match_id, allow_stale=True)
+        if stale:
+            return stale
+        raise
     if not isinstance(data, dict) or not data.get("players"):
         raise OpenDotaError(
             "OpenDota found the match but player data is not ready yet. Try again after the replay is parsed.",
             422,
         )
+    save_cached_match(match_id, data)
     return data
 
 

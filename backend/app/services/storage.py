@@ -2,6 +2,7 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterator, Optional
 
@@ -9,6 +10,7 @@ from app.schemas.report import CoachingReport
 
 DB_PATH = Path(__file__).resolve().parents[2] / "dotareframe.sqlite3"
 SUPPORTED_DATABASE_MODES = {"sqlite", "postgres"}
+MATCH_CACHE_TTL = timedelta(days=7)
 
 
 def connect() -> sqlite3.Connection:
@@ -76,6 +78,9 @@ def init_db() -> None:
                 db.execute(f"ALTER TABLE reports ADD COLUMN IF NOT EXISTS {definition}")
             db.execute("CREATE INDEX IF NOT EXISTS reports_profile_created_idx ON reports (profile_id, created_at DESC)")
             db.execute(
+                "CREATE INDEX IF NOT EXISTS reports_profile_match_player_role_idx ON reports (profile_id, match_id, player_slot, role)"
+            )
+            db.execute(
                 """
                 CREATE TABLE IF NOT EXISTS report_feedback (
                   profile_id TEXT NOT NULL,
@@ -99,6 +104,16 @@ def init_db() -> None:
                   patch INTEGER,
                   metrics TEXT NOT NULL,
                   created_at TEXT NOT NULL
+                )
+                """
+            )
+            db.execute(
+                """
+                CREATE TABLE IF NOT EXISTS match_cache (
+                  match_id BIGINT PRIMARY KEY,
+                  payload TEXT NOT NULL,
+                  fetched_at TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
                 )
                 """
             )
@@ -142,6 +157,9 @@ def init_db() -> None:
                 db.execute(f"ALTER TABLE reports ADD COLUMN {name} {definition}")
         db.execute("CREATE INDEX IF NOT EXISTS reports_profile_created_idx ON reports (profile_id, created_at DESC)")
         db.execute(
+            "CREATE INDEX IF NOT EXISTS reports_profile_match_player_role_idx ON reports (profile_id, match_id, player_slot, role)"
+        )
+        db.execute(
             """
             CREATE TABLE IF NOT EXISTS report_feedback (
               profile_id TEXT NOT NULL,
@@ -151,6 +169,16 @@ def init_db() -> None:
               created_at TEXT NOT NULL,
               updated_at TEXT NOT NULL,
               PRIMARY KEY (profile_id, report_id)
+            )
+            """
+        )
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS match_cache (
+              match_id INTEGER PRIMARY KEY,
+              payload TEXT NOT NULL,
+              fetched_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
             )
             """
         )
@@ -384,6 +412,62 @@ def find_duplicate_report(profile_id: str, match_id: int, player_slot: int, role
                 (profile_id, match_id, player_slot, role),
             ).fetchone()
     return json.loads(row[0]) if row else None
+
+
+def _parse_timestamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def get_cached_match(match_id: int, allow_stale: bool = False) -> Optional[dict]:
+    init_db()
+    if using_postgres():
+        with postgres_connect() as db:
+            row = db.execute("SELECT payload, fetched_at FROM match_cache WHERE match_id=%s", (match_id,)).fetchone()
+    else:
+        with connect() as db:
+            row = db.execute("SELECT payload, fetched_at FROM match_cache WHERE match_id=?", (match_id,)).fetchone()
+    if row is None:
+        return None
+    try:
+        fetched_at = _parse_timestamp(row[1])
+    except (TypeError, ValueError):
+        fetched_at = datetime.fromtimestamp(0, timezone.utc)
+    if not allow_stale and datetime.now(timezone.utc) - fetched_at > MATCH_CACHE_TTL:
+        return None
+    return json.loads(row[0])
+
+
+def save_cached_match(match_id: int, payload: dict) -> None:
+    init_db()
+    now = datetime.now(timezone.utc).isoformat()
+    values = (match_id, json.dumps(payload), now, now)
+    if using_postgres():
+        with postgres_connect() as db:
+            db.execute(
+                """
+                INSERT INTO match_cache (match_id,payload,fetched_at,updated_at)
+                VALUES (%s,%s,%s,%s)
+                ON CONFLICT (match_id) DO UPDATE SET
+                  payload=EXCLUDED.payload,
+                  fetched_at=EXCLUDED.fetched_at,
+                  updated_at=EXCLUDED.updated_at
+                """,
+                values,
+            )
+        return
+
+    with connect() as db:
+        db.execute(
+            """
+            INSERT INTO match_cache (match_id,payload,fetched_at,updated_at)
+            VALUES (?,?,?,?)
+            ON CONFLICT(match_id) DO UPDATE SET
+              payload=excluded.payload,
+              fetched_at=excluded.fetched_at,
+              updated_at=excluded.updated_at
+            """,
+            values,
+        )
 
 
 def save_feedback(profile_id: str, report_id: str, helpful: bool, reason: Optional[str]) -> dict:

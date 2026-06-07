@@ -85,13 +85,14 @@ export function ReportLoader({ matchId, playerSlot, role, accountId }: ReportLoa
       <span className="eyebrow">Analyzing match {matchId}</span>
       <h1>Building your coaching report</h1>
       <p>
-        Reading the public match, comparing your {role ?? "selected"} role, and choosing one practical mission.
-        A new match can take up to a minute.
+        Checking saved reports first, then reading the public match only if DotaReframe needs a fresh review.
+        A brand-new match can still take up to a minute.
       </p>
       <div className="report-load-steps" aria-hidden>
-        <span className="is-active">Match data</span>
-        <span>Role comparison</span>
-        <span>Next-game mission</span>
+        <span className="is-active">Checking saved report</span>
+        <span>Reading match data</span>
+        <span>Building role review</span>
+        <span>Saving report</span>
       </div>
     </section>
   );

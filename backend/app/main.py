@@ -102,6 +102,12 @@ def logout_session(
 
 
 async def _create_personal_report(request: ReportCreateRequest, profile: dict) -> dict:
+    if request.role:
+        duplicate = find_duplicate_report(profile["id"], request.match_id, request.player_slot, request.role)
+        if duplicate:
+            duplicate["feedback"] = get_feedback(profile["id"], duplicate["id"])
+            return duplicate
+
     match = await get_match(request.match_id)
     metrics = calculate_player_metrics(match, request.player_slot, request.role)
     verified_account = profile.get("steam_account_id")

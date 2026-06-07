@@ -16,8 +16,9 @@ import { getDashboard, getMyRecentMatches } from "@/lib/api";
 export const dynamic = "force-dynamic";
 
 export default async function MatchPage() {
-  const [dashboard, recentMatches] = await Promise.all([getDashboard(), getMyRecentMatches()]);
+  const dashboard = await getDashboard();
   const connected = Boolean(dashboard.profile.steam_account_id);
+  const recentMatches = connected ? await getMyRecentMatches() : [];
   const latestMatch = recentMatches[0];
 
   return (
