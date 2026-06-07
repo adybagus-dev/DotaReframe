@@ -180,3 +180,23 @@ def test_dashboard_falls_back_without_ai(monkeypatch, tmp_path) -> None:
     dashboard = main.get_dashboard(profile)
 
     assert dashboard["coach_note"].startswith("Start with one review")
+
+
+def test_saved_report_detail_marks_latest_review(monkeypatch, tmp_path) -> None:
+    use_temp_database(monkeypatch, tmp_path)
+    _, profile = create_session()
+    metrics = calculate_player_metrics(sample_match(), 0)
+
+    older = generate_report(sample_match(), {**metrics, "match_id": 7000000000})
+    older.id = f"{older.id}-{profile['id'][:8]}-old"
+    storage.save_report(older, profile["id"], {**metrics, "match_id": 7000000000})
+
+    latest = generate_report(sample_match(), {**metrics, "match_id": 7000000001})
+    latest.id = f"{latest.id}-{profile['id'][:8]}-new"
+    storage.save_report(latest, profile["id"], {**metrics, "match_id": 7000000001})
+
+    older_detail = main.get_personal_report(older.id, profile)
+    latest_detail = main.get_personal_report(latest.id, profile)
+
+    assert older_detail["is_latest"] is False
+    assert latest_detail["is_latest"] is True

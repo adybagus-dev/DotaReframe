@@ -145,6 +145,7 @@ export type CoachingReport = {
   feedback?: ReportFeedback;
   summary_note?: string | null;
   reflection_prompt?: string | null;
+  is_latest?: boolean;
 };
 
 export type SavedReportListItem = {

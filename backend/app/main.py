@@ -84,6 +84,11 @@ def current_profile(x_session_token: Optional[str] = Header(default=None)) -> di
     return profile
 
 
+def _latest_report_id(profile_id: str) -> str | None:
+    latest_reports = list_report_payloads(limit=1, profile_id=profile_id)
+    return latest_reports[0]["id"] if latest_reports else None
+
+
 @app.post("/sessions")
 def ensure_session(x_session_token: Optional[str] = Header(default=None)) -> dict:
     profile = resolve_session(x_session_token)
@@ -154,6 +159,7 @@ def get_personal_report(report_id: str, profile: dict = Depends(current_profile)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     report["feedback"] = get_feedback(profile["id"], report_id)
+    report["is_latest"] = report["id"] == _latest_report_id(profile["id"])
     return report
 
 

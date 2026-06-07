@@ -78,9 +78,16 @@ export function ReportView({
         <section className={`progress-card ${report.progress.completed ? "complete" : "active"}`}>
           <TrendingUp size={22} aria-hidden />
           <div>
-            <span>{report.progress.completed ? "Previous mission complete" : "Progress from your previous review"}</span>
+            <span>
+              {report.is_latest
+                ? report.progress.completed
+                  ? "Previous mission complete"
+                  : "Progress from your previous review"
+                : "Mission status when this review was created"}
+            </span>
             <h2>{report.progress.mission_title}</h2>
             <p>{report.progress.message}</p>
+            {!report.is_latest ? <small>This is a historical check from when this report was created.</small> : null}
           </div>
           <StatusPill tone={report.progress.completed ? "good" : "warning"}>
             {report.progress.completed ? "Completed" : "Keep going"}
