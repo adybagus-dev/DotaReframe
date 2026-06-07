@@ -9,6 +9,7 @@ from uuid import uuid4
 from app.services.storage import connect, postgres_connect, using_postgres
 
 SESSION_DAYS = 90
+_INIT_KEY: Optional[tuple[str, str]] = None
 
 
 def _now() -> datetime:
@@ -28,6 +29,11 @@ def _token() -> str:
 
 
 def init_identity_db() -> None:
+    global _INIT_KEY
+    key = ("postgres", "") if using_postgres() else ("sqlite", str(connect.__globals__["DB_PATH"]))
+    if _INIT_KEY == key:
+        return
+
     boolean_type = "BOOLEAN" if using_postgres() else "INTEGER"
     statements = [
         f"""
@@ -86,6 +92,7 @@ def init_identity_db() -> None:
                     )
                     """
                 )
+    _INIT_KEY = key
 
 
 def _row_dict(row, columns: list[str]) -> Optional[dict]:

@@ -11,6 +11,7 @@ from app.schemas.report import CoachingReport
 DB_PATH = Path(__file__).resolve().parents[2] / "dotareframe.sqlite3"
 SUPPORTED_DATABASE_MODES = {"sqlite", "postgres"}
 MATCH_CACHE_TTL = timedelta(days=7)
+_INIT_KEY: Optional[tuple[str, str]] = None
 
 
 def connect() -> sqlite3.Connection:
@@ -41,6 +42,11 @@ def postgres_connect() -> Iterator:
 
 
 def init_db() -> None:
+    global _INIT_KEY
+    key = (database_backend(), os.getenv("DATABASE_URL", "") if using_postgres() else str(DB_PATH))
+    if _INIT_KEY == key:
+        return
+
     if using_postgres():
         with postgres_connect() as db:
             db.execute(
@@ -117,6 +123,7 @@ def init_db() -> None:
                 )
                 """
             )
+        _INIT_KEY = key
         return
 
     with connect() as db:
@@ -196,6 +203,7 @@ def init_db() -> None:
             )
             """
         )
+    _INIT_KEY = key
 
 
 def save_report(report: CoachingReport, profile_id: Optional[str] = None, metrics: Optional[dict] = None) -> None:
