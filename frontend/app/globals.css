@@ -1455,7 +1455,8 @@ input {
   }
 
   .steam-panel,
-  .progress-card {
+  .progress-card,
+  .review-now-card {
     align-items: flex-start;
     grid-template-columns: 1fr;
   }
@@ -1522,6 +1523,54 @@ input {
   border: 1px solid #d9e0e8;
   border-radius: 8px;
   background: #ffffff;
+}
+
+.review-now-card {
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 24px;
+}
+
+.review-now-icon {
+  align-items: center;
+  background: var(--blue);
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  height: 46px;
+  justify-content: center;
+  width: 46px;
+}
+
+.review-now-card span {
+  color: #667085;
+  display: block;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.review-now-card h2 {
+  font-size: 24px;
+  margin: 6px 0 6px;
+}
+
+.review-now-card p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.review-now-card small {
+  color: #667085;
+  display: block;
+  line-height: 1.5;
+  margin-top: 10px;
 }
 
 .progress-primary > span,

@@ -1,12 +1,8 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  CheckCircle2,
-  Clock3,
-  Flame,
   Gamepad2,
   Target,
-  TrendingUp
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { MatchIdForm } from "@/components/match-id-form";
@@ -21,28 +17,18 @@ export default async function MatchPage() {
   const recentMatches = connected ? await getMyRecentMatches() : [];
   const latestMatch = recentMatches[0];
   const latestReviewedReport = dashboard.recent_reports[0];
-  const latestReviewedMatchId = latestReviewedReport?.match_id;
-  const latestPublicMatchIsNewer =
-    Boolean(connected && latestMatch && latestReviewedMatchId && latestMatch.match_id !== latestReviewedMatchId);
-  const missionTitle = latestPublicMatchIsNewer
-    ? `${latestMatch?.hero ?? "Your latest match"} is waiting for a review`
-    : dashboard.active_mission?.title ?? "Complete your first review";
-  const missionExplanation = latestPublicMatchIsNewer
-    ? `Your most recent public match is Match ${latestMatch?.match_id}. Review it to refresh the mission from the newest game.`
-    : dashboard.active_mission?.explanation ??
-      "DotaReframe will turn your match into one goal that is easy to check after the next game.";
 
   return (
     <AppShell active="new-review">
       <div className="page-stack">
         <div className="page-heading split">
           <div>
-            <span className="eyebrow">{dashboard.total_reports ? "Welcome Back" : "New Review"}</span>
-            <h1>{dashboard.total_reports ? "Keep improving one match at a time" : "Turn your last match into one clear fix"}</h1>
+            <span className="eyebrow">{connected ? "Review newest match" : "New Review"}</span>
+            <h1>Review newest match</h1>
             <p>
-              {dashboard.total_reports
-                ? "Your mission stays here between matches, so the next review can show whether the habit improved."
-                : "Review one public match, leave with one measurable mission, then come back after your next game."}
+              {connected
+                ? "This is the most recent public match from OpenDota."
+                : "Review one public match and get one clear mission to bring into the next game."}
             </p>
           </div>
           {connected ? (
@@ -57,90 +43,58 @@ export default async function MatchPage() {
           )}
         </div>
 
-        <section className="progress-hero">
-          <div className="progress-primary">
-            <span><Target size={18} aria-hidden /> {latestPublicMatchIsNewer ? "Latest match waiting" : "Current mission"}</span>
-            <h2>{missionTitle}</h2>
-            <p>{missionExplanation}</p>
-            <div className="dashboard-coach-note">
-              <strong>Coach note</strong>
-              <p>{dashboard.coach_note ?? "Open a report to get one clear next step."}</p>
-            </div>
-            {latestPublicMatchIsNewer && dashboard.active_mission ? (
-              <div className="inline-note">
-                <Target size={18} aria-hidden />
-                <span>Last reviewed mission: {dashboard.active_mission.title}</span>
-              </div>
-            ) : null}
+        <section className="review-now-card">
+          <div className="review-now-icon">
+            <Gamepad2 size={24} aria-hidden />
+          </div>
+          <div>
+            <span>Newest public match</span>
             {latestMatch ? (
-              <Link className="button primary" href={`/match/${latestMatch.match_id}/review`}>
-                Review Latest Match
-                <ArrowRight size={18} aria-hidden />
-              </Link>
+              <>
+                <h2>{latestMatch.hero}</h2>
+                <p>Match {latestMatch.match_id} · {latestMatch.result} · {latestMatch.kda} · {latestMatch.duration_minutes}m</p>
+                <small>This is the most recent match from OpenDota. Review it to update your mission.</small>
+              </>
             ) : (
-              <a className="button primary" href="#manual-review">Start First Review</a>
+              <>
+                <h2>No newest match found</h2>
+                <p>Connect Steam or paste a match ID to start reviewing.</p>
+                <small>Your next mission will update after a saved review.</small>
+              </>
             )}
           </div>
-          <div className="progress-stats">
-            <article>
-              <Flame size={20} aria-hidden />
-              <strong>{dashboard.mission_streak}</strong>
-              <span>mission streak</span>
-            </article>
-            <article>
-              <TrendingUp size={20} aria-hidden />
-              <strong>{dashboard.total_reports}</strong>
-              <span>matches reviewed</span>
-            </article>
-            <article>
-              <CheckCircle2 size={20} aria-hidden />
-              <strong>{dashboard.latest_progress?.completed ? "Improved" : dashboard.latest_progress ? "In progress" : "Ready"}</strong>
-              <span>latest mission</span>
-            </article>
+          {latestMatch ? (
+            <Link className="button primary" href={`/match/${latestMatch.match_id}/review`}>
+              Review Latest Match
+              <ArrowRight size={18} aria-hidden />
+            </Link>
+          ) : (
+            <a className="button primary" href="#manual-review">
+              Start First Review
+            </a>
+          )}
+        </section>
+
+        <section className="mission-card">
+          <div className="mission-icon">
+            <Target size={24} aria-hidden />
+          </div>
+          <div>
+            <span>Mission from last review</span>
+            <h2>{dashboard.active_mission?.title ?? "Complete your first review"}</h2>
+            <p>
+              {dashboard.active_mission?.explanation ??
+                "DotaReframe will turn your match into one goal that is easy to check after the next game."}
+            </p>
+            <strong>
+              {latestReviewedReport ? `Based on your last reviewed match, Match ${latestReviewedReport.match_id}.` : "Save one review to create your first mission."}
+            </strong>
           </div>
         </section>
 
-        {connected ? (
-          <section className="section-block">
-            <div className="section-heading">
-              <span>Recent public matches</span>
-              <h2>Choose the next match to learn from</h2>
-            </div>
-            {recentMatches.length ? (
-              <div className="recent-match-list">
-                {recentMatches.slice(0, 6).map((match) => (
-                  <Link className="recent-match-row" href={`/match/${match.match_id}/review`} key={match.match_id}>
-                    <div className="hero-avatar info">{match.hero.slice(0, 1)}</div>
-                    <div>
-                      <strong>{match.hero}</strong>
-                      <span>Match {match.match_id} · {match.kda}</span>
-                    </div>
-                    <div className="recent-match-meta">
-                      <StatusPill tone={match.result === "Won" ? "good" : "risk"}>{match.result}</StatusPill>
-                      <span><Clock3 size={14} aria-hidden />{match.duration_minutes}m</span>
-                      <ArrowRight size={18} aria-hidden />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="inline-note">No public recent matches were found. You can still paste a match ID below.</div>
-            )}
-          </section>
-        ) : (
-          <section className="steam-panel">
-            <div>
-              <Gamepad2 size={28} aria-hidden />
-              <div>
-                <h2>Keep progress across devices</h2>
-                <p>Connect Steam after your first review to restore your mission and private history anywhere.</p>
-              </div>
-            </div>
-            <a className="button steam-button" href="/api/steam/login">Connect Steam</a>
-          </section>
-        )}
-
-        <MatchIdForm connected={connected} />
+        <div id="manual-review">
+          <MatchIdForm connected={connected} />
+        </div>
 
         {dashboard.recent_reports.length ? (
           <section className="section-block">
