@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 
+export const maxDuration = 60;
+
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const token = request.cookies.get("dotareframe_session")?.value;

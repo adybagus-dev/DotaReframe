@@ -793,6 +793,70 @@ input {
   gap: 10px;
 }
 
+.report-load-state {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
+  min-height: calc(100vh - 112px);
+  max-width: 680px;
+}
+
+.report-load-state > svg {
+  color: var(--blue);
+}
+
+.report-load-state h1 {
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  line-height: 1.02;
+  margin: 0;
+  max-width: 620px;
+}
+
+.report-load-state p {
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 620px;
+}
+
+.report-load-state.error-state > svg {
+  color: var(--red);
+}
+
+.report-load-actions,
+.report-load-steps {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.report-load-actions {
+  margin-top: 8px;
+}
+
+.report-load-steps {
+  margin-top: 18px;
+}
+
+.report-load-steps span {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+
+.report-load-steps span.is-active {
+  background: var(--blue-soft);
+  border-color: #93b4f8;
+  color: var(--blue);
+}
+
 .skeleton {
   animation: pulse 1.4s ease-in-out infinite;
   background: var(--panel-soft);

@@ -1,6 +1,5 @@
 import { AppShell } from "@/components/app-shell";
-import { ReportView } from "@/components/report-view";
-import { createOrGetReport } from "@/lib/api";
+import { ReportLoader } from "@/components/report-loader";
 
 type PageProps = {
   params: Promise<{ matchId: string; playerSlot: string }>;
@@ -10,11 +9,10 @@ type PageProps = {
 export default async function GeneratedReportPage({ params, searchParams }: PageProps) {
   const { matchId, playerSlot } = await params;
   const { role, accountId } = await searchParams;
-  const report = await createOrGetReport(matchId, playerSlot, role, accountId);
 
   return (
     <AppShell active="new-review">
-      <ReportView report={report} />
+      <ReportLoader accountId={accountId} matchId={matchId} playerSlot={playerSlot} role={role} />
     </AppShell>
   );
 }
