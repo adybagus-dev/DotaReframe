@@ -105,7 +105,7 @@ async def _create_personal_report(request: ReportCreateRequest, profile: dict) -
     if request.role:
         duplicate = find_duplicate_report(profile["id"], request.match_id, request.player_slot, request.role)
         if duplicate:
-            duplicate["feedback"] = get_feedback(profile["id"], duplicate["id"])
+            duplicate.setdefault("feedback", None)
             return duplicate
 
     match = await get_match(request.match_id)
@@ -115,7 +115,7 @@ async def _create_personal_report(request: ReportCreateRequest, profile: dict) -
         raise HTTPException(status_code=403, detail="That player is not connected to your Steam profile.")
     duplicate = find_duplicate_report(profile["id"], request.match_id, request.player_slot, metrics["role"])
     if duplicate:
-        duplicate["feedback"] = get_feedback(profile["id"], duplicate["id"])
+        duplicate.setdefault("feedback", None)
         return duplicate
     report = generate_report(
         match,

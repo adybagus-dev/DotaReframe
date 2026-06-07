@@ -174,22 +174,35 @@ def resolve_session(raw_token: Optional[str], touch: bool = True) -> Optional[di
     if using_postgres():
         with postgres_connect() as db:
             row = db.execute(query.format(placeholder="%s"), (_hash(raw_token),)).fetchone()
+            session = _row_dict(row, columns)
+            if not session or datetime.fromisoformat(session["expires_at"]) <= _now():
+                return None
+            if touch:
+                expiry = _iso(_now() + timedelta(days=SESSION_DAYS))
+                seen = _iso(_now())
+                db.execute("UPDATE sessions SET expires_at=%s,last_seen_at=%s WHERE id=%s", (expiry, seen, session["session_id"]))
+            profile_row = db.execute(
+                "SELECT id, steam_account_id, is_guest, created_at, updated_at FROM player_profiles WHERE id = %s",
+                (session["profile_id"],),
+            ).fetchone()
     else:
         with connect() as db:
             row = db.execute(query.format(placeholder="?"), (_hash(raw_token),)).fetchone()
-    session = _row_dict(row, columns)
-    if not session or datetime.fromisoformat(session["expires_at"]) <= _now():
-        return None
-    if touch:
-        expiry = _iso(_now() + timedelta(days=SESSION_DAYS))
-        seen = _iso(_now())
-        if using_postgres():
-            with postgres_connect() as db:
-                db.execute("UPDATE sessions SET expires_at=%s,last_seen_at=%s WHERE id=%s", (expiry, seen, session["session_id"]))
-        else:
-            with connect() as db:
+            session = _row_dict(row, columns)
+            if not session or datetime.fromisoformat(session["expires_at"]) <= _now():
+                return None
+            if touch:
+                expiry = _iso(_now() + timedelta(days=SESSION_DAYS))
+                seen = _iso(_now())
                 db.execute("UPDATE sessions SET expires_at=?,last_seen_at=? WHERE id=?", (expiry, seen, session["session_id"]))
-    return get_profile(session["profile_id"])
+            profile_row = db.execute(
+                "SELECT id, steam_account_id, is_guest, created_at, updated_at FROM player_profiles WHERE id = ?",
+                (session["profile_id"],),
+            ).fetchone()
+    profile = _row_dict(profile_row, ["id", "steam_account_id", "is_guest", "created_at", "updated_at"])
+    if profile:
+        profile["is_guest"] = bool(profile["is_guest"])
+    return profile
 
 
 def revoke_session(raw_token: Optional[str]) -> None:

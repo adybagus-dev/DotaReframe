@@ -410,16 +410,43 @@ def find_duplicate_report(profile_id: str, match_id: int, player_slot: int, role
     if using_postgres():
         with postgres_connect() as db:
             row = db.execute(
-                "SELECT payload FROM reports WHERE profile_id=%s AND match_id=%s AND player_slot=%s AND role=%s LIMIT 1",
+                """
+                SELECT reports.payload, report_feedback.helpful, report_feedback.reason
+                FROM reports
+                LEFT JOIN report_feedback
+                  ON report_feedback.profile_id = reports.profile_id
+                 AND report_feedback.report_id = reports.id
+                WHERE reports.profile_id=%s
+                  AND reports.match_id=%s
+                  AND reports.player_slot=%s
+                  AND reports.role=%s
+                LIMIT 1
+                """,
                 (profile_id, match_id, player_slot, role),
             ).fetchone()
     else:
         with connect() as db:
             row = db.execute(
-                "SELECT payload FROM reports WHERE profile_id=? AND match_id=? AND player_slot=? AND role=? LIMIT 1",
+                """
+                SELECT reports.payload, report_feedback.helpful, report_feedback.reason
+                FROM reports
+                LEFT JOIN report_feedback
+                  ON report_feedback.profile_id = reports.profile_id
+                 AND report_feedback.report_id = reports.id
+                WHERE reports.profile_id=?
+                  AND reports.match_id=?
+                  AND reports.player_slot=?
+                  AND reports.role=?
+                LIMIT 1
+                """,
                 (profile_id, match_id, player_slot, role),
             ).fetchone()
-    return json.loads(row[0]) if row else None
+    if not row:
+        return None
+    payload = json.loads(row[0])
+    if row[1] is not None:
+        payload["feedback"] = {"helpful": bool(row[1]), "reason": row[2]}
+    return payload
 
 
 def _parse_timestamp(value: str) -> datetime:
