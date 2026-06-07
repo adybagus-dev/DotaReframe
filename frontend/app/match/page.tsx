@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function MatchPage() {
   const dashboard = await getDashboard();
   const connected = Boolean(dashboard.profile.steam_account_id);
-  const recentMatches = connected ? await getMyRecentMatches() : [];
+  const recentMatches = connected ? await getMyRecentMatches().catch(() => []) : [];
   const latestMatch = recentMatches[0];
   const latestReviewedReport = dashboard.recent_reports[0];
 
