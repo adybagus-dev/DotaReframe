@@ -8,7 +8,7 @@ from typing import Any, Optional
 import httpx
 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
-DEFAULT_MODEL = "gemini-1.5-flash"
+DEFAULT_MODEL = "gemini-2.5-flash-lite"
 
 
 class GeminiError(Exception):
