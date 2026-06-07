@@ -343,6 +343,16 @@ export function ReportView({
         </div>
       </details>
 
+      {report.reflection_prompt ? (
+        <section className="reflection-card">
+          <div>
+            <span>Before the next queue</span>
+            <h2>One quick reflection</h2>
+            <p>{report.reflection_prompt}</p>
+          </div>
+        </section>
+      ) : null}
+
       <ReportFeedback reportId={report.id} initial={report.feedback} />
 
       <div className="footer-actions">

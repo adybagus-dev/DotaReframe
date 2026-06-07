@@ -42,6 +42,8 @@ def test_reports_are_isolated_by_profile(monkeypatch, tmp_path) -> None:
     storage.save_report(report, first["id"], metrics)
 
     assert len(storage.list_reports(first["id"])) == 1
+    assert storage.list_reports(first["id"])[0]["summary_note"] == report.summary_note
+    assert storage.get_report(report.id, first["id"])["reflection_prompt"] == report.reflection_prompt
     assert storage.list_reports(second["id"]) == []
     assert storage.get_report(report.id, second["id"]) is None
 
@@ -152,3 +154,29 @@ def test_duplicate_report_returns_before_match_fetch(monkeypatch, tmp_path) -> N
     )
 
     assert payload["id"] == report.id
+
+
+def test_dashboard_includes_ai_coach_note(monkeypatch, tmp_path) -> None:
+    use_temp_database(monkeypatch, tmp_path)
+    _, profile = create_session()
+    metrics = calculate_player_metrics(sample_match(), 0)
+    report = generate_report(sample_match(), metrics)
+    report.id = f"{report.id}-{profile['id'][:8]}"
+    storage.save_report(report, profile["id"], metrics)
+
+    monkeypatch.setattr(main, "generate_dashboard_note", lambda payload: "Gemini says keep the lane safer.")
+
+    dashboard = main.get_dashboard(profile)
+
+    assert dashboard["coach_note"] == "Gemini says keep the lane safer."
+
+
+def test_dashboard_falls_back_without_ai(monkeypatch, tmp_path) -> None:
+    use_temp_database(monkeypatch, tmp_path)
+    _, profile = create_session()
+
+    monkeypatch.setattr(main, "generate_dashboard_note", lambda payload: None)
+
+    dashboard = main.get_dashboard(profile)
+
+    assert dashboard["coach_note"].startswith("Start with one review")

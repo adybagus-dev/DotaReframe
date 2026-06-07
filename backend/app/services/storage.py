@@ -80,6 +80,8 @@ def init_db() -> None:
                 "tower_damage INTEGER",
                 "healing INTEGER",
                 "kill_participation INTEGER",
+                "summary_note TEXT",
+                "reflection_prompt TEXT",
             ):
                 db.execute(f"ALTER TABLE reports ADD COLUMN IF NOT EXISTS {definition}")
             db.execute("CREATE INDEX IF NOT EXISTS reports_profile_created_idx ON reports (profile_id, created_at DESC)")
@@ -159,6 +161,8 @@ def init_db() -> None:
             ("tower_damage", "INTEGER"),
             ("healing", "INTEGER"),
             ("kill_participation", "INTEGER"),
+            ("summary_note", "TEXT"),
+            ("reflection_prompt", "TEXT"),
         ):
             if name not in existing:
                 db.execute(f"ALTER TABLE reports ADD COLUMN {name} {definition}")
@@ -237,6 +241,8 @@ def save_report(report: CoachingReport, profile_id: Optional[str] = None, metric
         report.summary.tower_damage,
         int(metrics.get("healing") or 0),
         int(metrics.get("kill_participation") or 0),
+        report.summary_note,
+        report.reflection_prompt,
     )
 
     if using_postgres():
@@ -247,9 +253,10 @@ def save_report(report: CoachingReport, profile_id: Optional[str] = None, metric
                   id, match_id, player_slot, hero, result, created_at, kda, gpm,
                   main_problem, confidence, payload, profile_id, account_id, role,
                   match_started_at, patch, rank_tier, duration_minutes, deaths, last_hits,
-                  hero_damage, tower_damage, healing, kill_participation
+                  hero_damage, tower_damage, healing, kill_participation,
+                  summary_note, reflection_prompt
                 )
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT (id) DO UPDATE SET
                   match_id = EXCLUDED.match_id,
                   player_slot = EXCLUDED.player_slot,
@@ -273,7 +280,9 @@ def save_report(report: CoachingReport, profile_id: Optional[str] = None, metric
                   hero_damage = EXCLUDED.hero_damage,
                   tower_damage = EXCLUDED.tower_damage,
                   healing = EXCLUDED.healing,
-                  kill_participation = EXCLUDED.kill_participation
+                  kill_participation = EXCLUDED.kill_participation,
+                  summary_note = EXCLUDED.summary_note,
+                  reflection_prompt = EXCLUDED.reflection_prompt
                 """,
                 values + extended,
             )
@@ -287,9 +296,10 @@ def save_report(report: CoachingReport, profile_id: Optional[str] = None, metric
               id, match_id, player_slot, hero, result, created_at, kda, gpm,
               main_problem, confidence, payload, profile_id, account_id, role,
               match_started_at, patch, rank_tier, duration_minutes, deaths, last_hits,
-              hero_damage, tower_damage, healing, kill_participation
+              hero_damage, tower_damage, healing, kill_participation,
+              summary_note, reflection_prompt
             )
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             values + extended,
         )
@@ -346,29 +356,60 @@ def list_reports(profile_id: Optional[str] = None) -> list[dict]:
             rows = db.execute(
                 """
                 SELECT id, match_id, player_slot, hero, result, created_at, kda, gpm,
-                       main_problem, confidence
+                       main_problem, confidence, summary_note
                 FROM reports
                 WHERE profile_id = %s
                 ORDER BY match_started_at DESC NULLS LAST, created_at DESC
                 """,
                 (profile_id,),
             ).fetchall()
-        columns = ["id", "match_id", "player_slot", "hero", "result", "created_at", "kda", "gpm", "main_problem", "confidence"]
-        return [dict(zip(columns, row)) for row in rows]
+        columns = [
+            "id",
+            "match_id",
+            "player_slot",
+            "hero",
+            "result",
+            "created_at",
+            "kda",
+            "gpm",
+            "main_problem",
+            "confidence",
+            "summary_note",
+        ]
+        return [_with_summary_fallback(dict(zip(columns, row))) for row in rows]
 
     with connect() as db:
         db.row_factory = sqlite3.Row
         rows = db.execute(
             """
             SELECT id, match_id, player_slot, hero, result, created_at, kda, gpm,
-                   main_problem, confidence
+                   main_problem, confidence, summary_note
             FROM reports
             WHERE profile_id = ?
             ORDER BY match_started_at DESC, created_at DESC, rowid DESC
             """,
             (profile_id,),
         ).fetchall()
-    return [dict(row) for row in rows]
+    return [_with_summary_fallback(dict(row)) for row in rows]
+
+
+def _with_summary_fallback(row: dict) -> dict:
+    if not row.get("summary_note"):
+        row["summary_note"] = f"{row['hero']}: {row['main_problem']}"
+    return row
+
+
+def _with_report_fallbacks(payload: dict) -> dict:
+    hero = payload.get("hero") or "This match"
+    role = payload.get("role") or "your role"
+    main_problem = str(payload.get("main_problem") or "one clear habit")
+    if not payload.get("summary_note"):
+        payload["summary_note"] = f"{hero} {role}: {main_problem.lower()} is the next habit to clean up."
+    if not payload.get("reflection_prompt"):
+        payload["reflection_prompt"] = (
+            f"Before your next {role} game, what one decision will help avoid this: {main_problem.lower()}?"
+        )
+    return payload
 
 
 def get_report(report_id: str, profile_id: Optional[str] = None) -> Optional[dict]:
@@ -378,13 +419,13 @@ def get_report(report_id: str, profile_id: Optional[str] = None) -> Optional[dic
             row = db.execute("SELECT payload FROM reports WHERE id = %s AND profile_id = %s", (report_id, profile_id)).fetchone()
         if row is None:
             return None
-        return json.loads(row[0])
+        return _with_report_fallbacks(json.loads(row[0]))
 
     with connect() as db:
         row = db.execute("SELECT payload FROM reports WHERE id = ? AND profile_id = ?", (report_id, profile_id)).fetchone()
     if row is None:
         return None
-    return json.loads(row[0])
+    return _with_report_fallbacks(json.loads(row[0]))
 
 
 def list_report_payloads(limit: int = 50, profile_id: Optional[str] = None) -> list[dict]:
@@ -395,14 +436,14 @@ def list_report_payloads(limit: int = 50, profile_id: Optional[str] = None) -> l
                 "SELECT payload FROM reports WHERE profile_id = %s ORDER BY match_started_at DESC NULLS LAST, created_at DESC LIMIT %s",
                 (profile_id, limit),
             ).fetchall()
-        return [json.loads(row[0]) for row in rows]
+        return [_with_report_fallbacks(json.loads(row[0])) for row in rows]
 
     with connect() as db:
         rows = db.execute(
             "SELECT payload FROM reports WHERE profile_id = ? ORDER BY match_started_at DESC, created_at DESC, rowid DESC LIMIT ?",
             (profile_id, limit),
         ).fetchall()
-    return [json.loads(row[0]) for row in rows]
+    return [_with_report_fallbacks(json.loads(row[0])) for row in rows]
 
 
 def find_duplicate_report(profile_id: str, match_id: int, player_slot: int, role: str) -> Optional[dict]:
@@ -443,7 +484,7 @@ def find_duplicate_report(profile_id: str, match_id: int, player_slot: int, role
             ).fetchone()
     if not row:
         return None
-    payload = json.loads(row[0])
+    payload = _with_report_fallbacks(json.loads(row[0]))
     if row[1] is not None:
         payload["feedback"] = {"helpful": bool(row[1]), "reason": row[2]}
     return payload

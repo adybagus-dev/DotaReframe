@@ -16,6 +16,8 @@ def test_generate_report_contains_required_sections() -> None:
     assert report.limitations
     assert report.next_match_mission
     assert report.comparison_context
+    assert report.summary_note
+    assert report.reflection_prompt
     assert report.timeline[0].title == "Bought Phase Boots"
 
 
@@ -45,3 +47,56 @@ def test_generate_report_compares_previous_mission() -> None:
 
     assert report.progress
     assert report.progress.completed is True
+
+
+def test_generate_report_uses_gemini_wording_when_available(monkeypatch) -> None:
+    metrics = calculate_player_metrics(sample_match(), 0)
+
+    monkeypatch.setattr(
+        "app.services.coach.refine_report_language",
+        lambda payload: {
+            "match_story": "Simple story from Gemini.",
+            "main_problem": "Simple problem from Gemini.",
+            "practice_drills": [
+                {
+                    "title": "Gemini drill",
+                    "goal": "Keep it simple",
+                    "how_to_practice": "Do one clear thing each game.",
+                }
+            ],
+            "training_plan": ["Gemini step one", "Gemini step two"],
+            "next_match_mission": {
+                "explanation": "Simple mission explanation.",
+                "check_text": "Simple mission check.",
+            },
+            "progress": {"message": "Simple progress text."},
+            "summary_note": "Simple saved summary.",
+            "reflection_prompt": "What will you do differently next game?",
+        },
+    )
+
+    report = generate_report(sample_match(), metrics)
+
+    assert report.match_story == "Simple story from Gemini."
+    assert report.main_problem == "Simple problem from Gemini."
+    assert report.practice_drills[0].title == "Gemini drill"
+    assert report.training_plan == ["Gemini step one", "Gemini step two"]
+    assert report.next_match_mission
+    assert report.next_match_mission.explanation == "Simple mission explanation."
+    assert report.next_match_mission.check_text == "Simple mission check."
+    assert report.summary_note == "Simple saved summary."
+    assert report.reflection_prompt == "What will you do differently next game?"
+
+
+def test_generate_report_falls_back_when_gemini_fails(monkeypatch) -> None:
+    metrics = calculate_player_metrics(sample_match(), 0)
+
+    def boom(_payload):
+        raise RuntimeError("Gemini is unavailable")
+
+    monkeypatch.setattr("app.services.coach.refine_report_language", boom)
+
+    report = generate_report(sample_match(), metrics)
+
+    assert "You played" in report.match_story
+    assert report.main_problem

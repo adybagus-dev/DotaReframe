@@ -1384,6 +1384,16 @@ input {
   margin: 0;
 }
 
+.saved-summary {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 4px solid #2f6fed;
+  border-radius: 6px;
+  background: #f7faff;
+  color: #334155;
+  line-height: 1.5;
+}
+
 .saved-footer {
   align-items: center;
   border-top: 1px solid var(--line);
@@ -1539,6 +1549,31 @@ input {
   margin: 0 0 20px;
   color: #566273;
   line-height: 1.65;
+}
+
+.dashboard-coach-note {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid #dbe4ee;
+  border-left: 4px solid #2f6fed;
+  border-radius: 6px;
+  background: #f7faff;
+}
+
+.dashboard-coach-note strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #17324d;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.dashboard-coach-note p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.55;
 }
 
 .progress-stats {
@@ -1763,6 +1798,33 @@ input {
   border: 1px solid #d9e0e8;
   border-radius: 8px;
   background: #fff;
+}
+
+.reflection-card {
+  padding: 20px 22px;
+  border: 1px solid #d9e0e8;
+  border-left: 4px solid #2f6fed;
+  border-radius: 8px;
+  background: #f7faff;
+}
+
+.reflection-card span {
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.reflection-card h2 {
+  margin: 8px 0;
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.reflection-card p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.6;
 }
 
 .feedback-card p {

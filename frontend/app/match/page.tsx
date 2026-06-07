@@ -54,6 +54,10 @@ export default async function MatchPage() {
               {dashboard.active_mission?.explanation ??
                 "DotaReframe will turn your match into one goal that is easy to check after the next game."}
             </p>
+            <div className="dashboard-coach-note">
+              <strong>Coach note</strong>
+              <p>{dashboard.coach_note ?? "Open a report to get one clear next step."}</p>
+            </div>
             {latestMatch ? (
               <Link className="button primary" href={`/match/${latestMatch.match_id}/review`}>
                 Review Latest Match

@@ -46,6 +46,7 @@ export default async function ReportsPage() {
                   <span>KDA: {report.kda}</span>
                   <span>GPM: {report.gpm}</span>
                 </div>
+                <p className="saved-summary">{report.summary_note ?? `${report.hero}: ${report.main_problem}`}</p>
                 <p className="saved-problem">Main thing to fix: {report.main_problem}</p>
                 <div className="saved-footer">
                   <span>

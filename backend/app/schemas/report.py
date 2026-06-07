@@ -127,6 +127,8 @@ class CoachingReport(BaseModel):
     next_match_mission: Optional[NextMatchMission] = None
     timeline: list[TimelineEvent] = Field(default_factory=list)
     progress: Optional[ProgressComparison] = None
+    summary_note: Optional[str] = None
+    reflection_prompt: Optional[str] = None
     feedback: Optional[dict] = None
 
 

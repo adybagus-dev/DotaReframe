@@ -143,6 +143,8 @@ export type CoachingReport = {
   timeline?: TimelineEvent[];
   progress?: ProgressComparison;
   feedback?: ReportFeedback;
+  summary_note?: string | null;
+  reflection_prompt?: string | null;
 };
 
 export type SavedReportListItem = {
@@ -156,6 +158,7 @@ export type SavedReportListItem = {
   gpm: number;
   main_problem: string;
   confidence: "low" | "medium" | "high";
+  summary_note?: string | null;
 };
 
 export type RecentMatch = {
@@ -185,6 +188,7 @@ export type DashboardSummary = {
   mission_streak: number;
   active_mission?: NextMatchMission;
   latest_progress?: ProgressComparison;
+  coach_note?: string;
   recent_reports: SavedReportListItem[];
 };
 

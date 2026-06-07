@@ -12,6 +12,7 @@ from fastapi.responses import RedirectResponse
 from app.schemas.report import ReportCreateRequest, ReportFeedbackRequest
 from app.services.analyzer import build_player_list, calculate_player_metrics, hero_name, player_result
 from app.services.coach import generate_report
+from app.services.gemini import GeminiError, generate_dashboard_note
 from app.services.opendota import OpenDotaError, fetch_match, fetch_recent_matches
 from app.services.storage import (
     database_backend,
@@ -180,16 +181,46 @@ def _mission_streak(reports: list[dict]) -> int:
     return streak
 
 
+def _dashboard_coach_note(profile: dict, reports: list[dict], latest: dict | None, latest_progress: dict | None) -> str:
+    payload = {
+        "total_reports": len(reports),
+        "mission_streak": _mission_streak(reports),
+        "active_mission": latest.get("next_match_mission") if latest else None,
+        "latest_progress": latest_progress,
+        "latest_report": latest,
+    }
+
+    try:
+        note = generate_dashboard_note(payload)
+    except GeminiError:
+        note = None
+    except Exception:
+        note = None
+
+    if note:
+        return note
+
+    if latest_progress and latest_progress.get("completed"):
+        return "You completed your last mission. Open the next review and keep the streak moving."
+    if latest_progress:
+        return "Your last mission is still in progress. One more review will show whether the habit is changing."
+    if latest:
+        return f"Your latest report is on {latest['hero']}. Open it when you want the next clear fix."
+    return "Start with one review, then come back after your next match to see what improved."
+
+
 @app.get("/me/dashboard")
 def get_dashboard(profile: dict = Depends(current_profile)) -> dict:
     reports = list_report_payloads(profile_id=profile["id"])
     latest = reports[0] if reports else None
+    latest_progress = latest.get("progress") if latest else None
     return {
         "profile": profile,
         "total_reports": len(reports),
         "mission_streak": _mission_streak(reports),
         "active_mission": latest.get("next_match_mission") if latest else None,
-        "latest_progress": latest.get("progress") if latest else None,
+        "latest_progress": latest_progress,
+        "coach_note": _dashboard_coach_note(profile, reports, latest, latest_progress),
         "recent_reports": list_reports(profile["id"])[:4],
     }
 

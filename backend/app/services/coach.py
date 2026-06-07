@@ -14,6 +14,7 @@ from app.schemas.report import (
     TimingNote,
 )
 from app.services.benchmarks import build_benchmark
+from app.services.gemini import refine_report_language
 
 
 ROLE_PROFILES = {
@@ -87,7 +88,7 @@ def generate_report(
         tower_damage=metrics["tower_damage"],
         deaths=metrics["deaths"],
     )
-    return CoachingReport(
+    report = CoachingReport(
         id=f"report-{metrics['match_id']}-{metrics['player_slot']}-{_role_slug(metrics['role'])}",
         match_id=metrics["match_id"],
         player_slot=metrics["player_slot"],
@@ -125,6 +126,93 @@ def generate_report(
         next_match_mission=_next_match_mission(metrics),
         timeline=_timeline(metrics),
         progress=_progress(metrics, previous_reports or []),
+        summary_note=_summary_note(metrics, main),
+        reflection_prompt=_reflection_prompt(metrics, main),
+    )
+    return _refine_with_gemini(report)
+
+
+def _refine_with_gemini(report: CoachingReport) -> CoachingReport:
+    try:
+        refined = refine_report_language(
+            {
+                "role": report.role,
+                "hero": report.hero,
+                "result": report.result,
+                "summary": report.summary.model_dump(),
+                "main_problem": report.main_problem,
+                "match_story": report.match_story,
+                "next_match_mission": report.next_match_mission.model_dump() if report.next_match_mission else None,
+                "progress": report.progress.model_dump() if report.progress else None,
+                "practice_drills": [drill.model_dump() for drill in report.practice_drills],
+                "training_plan": list(report.training_plan),
+                "summary_note": report.summary_note,
+                "reflection_prompt": report.reflection_prompt,
+            }
+        )
+    except Exception:
+        return report
+
+    if not refined:
+        return report
+
+    if isinstance(refined.get("match_story"), str) and refined["match_story"].strip():
+        report.match_story = refined["match_story"].strip()
+    if isinstance(refined.get("main_problem"), str) and refined["main_problem"].strip():
+        report.main_problem = refined["main_problem"].strip()
+
+    drills = refined.get("practice_drills")
+    if isinstance(drills, list) and drills:
+        updated_drills: list[PracticeDrill] = []
+        for index, original in enumerate(report.practice_drills):
+            updated = drills[index] if index < len(drills) else None
+            if isinstance(updated, dict):
+                updated_drills.append(
+                    PracticeDrill(
+                        title=str(updated.get("title") or original.title).strip(),
+                        goal=str(updated.get("goal") or original.goal).strip(),
+                        how_to_practice=str(updated.get("how_to_practice") or original.how_to_practice).strip(),
+                    )
+                )
+            else:
+                updated_drills.append(original)
+        report.practice_drills = updated_drills
+
+    plan = refined.get("training_plan")
+    if isinstance(plan, list) and plan:
+        refined_plan = [str(item).strip() for item in plan if str(item).strip()]
+        if refined_plan:
+            report.training_plan = refined_plan[: len(report.training_plan)]
+
+    next_mission = refined.get("next_match_mission")
+    if report.next_match_mission and isinstance(next_mission, dict):
+        if isinstance(next_mission.get("explanation"), str) and next_mission["explanation"].strip():
+            report.next_match_mission.explanation = next_mission["explanation"].strip()
+        if isinstance(next_mission.get("check_text"), str) and next_mission["check_text"].strip():
+            report.next_match_mission.check_text = next_mission["check_text"].strip()
+
+    progress = refined.get("progress")
+    if report.progress and isinstance(progress, dict):
+        if isinstance(progress.get("message"), str) and progress["message"].strip():
+            report.progress.message = progress["message"].strip()
+
+    if isinstance(refined.get("summary_note"), str) and refined["summary_note"].strip():
+        report.summary_note = refined["summary_note"].strip()
+    if isinstance(refined.get("reflection_prompt"), str) and refined["reflection_prompt"].strip():
+        report.reflection_prompt = refined["reflection_prompt"].strip()
+
+    return report
+
+
+def _summary_note(metrics: dict, main: Mistake) -> str:
+    return (
+        f"{metrics['hero']} {metrics['role']}: {main.title.lower()} is the next habit to clean up."
+    )
+
+
+def _reflection_prompt(metrics: dict, main: Mistake) -> str:
+    return (
+        f"Before your next {metrics['role']} game, what one decision will help avoid this: {main.title.lower()}?"
     )
 
 
