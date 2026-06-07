@@ -71,6 +71,7 @@ def init_db() -> None:
                 "account_id BIGINT",
                 "role TEXT",
                 "match_started_at BIGINT",
+                "reviewed_at TEXT",
                 "patch INTEGER",
                 "rank_tier INTEGER",
                 "duration_minutes INTEGER",
@@ -85,6 +86,7 @@ def init_db() -> None:
             ):
                 db.execute(f"ALTER TABLE reports ADD COLUMN IF NOT EXISTS {definition}")
             db.execute("CREATE INDEX IF NOT EXISTS reports_profile_created_idx ON reports (profile_id, created_at DESC)")
+            db.execute("CREATE INDEX IF NOT EXISTS reports_profile_reviewed_idx ON reports (profile_id, reviewed_at DESC)")
             db.execute(
                 "CREATE INDEX IF NOT EXISTS reports_profile_match_player_role_idx ON reports (profile_id, match_id, player_slot, role)"
             )
@@ -152,6 +154,7 @@ def init_db() -> None:
             ("account_id", "INTEGER"),
             ("role", "TEXT"),
             ("match_started_at", "INTEGER"),
+            ("reviewed_at", "TEXT"),
             ("patch", "INTEGER"),
             ("rank_tier", "INTEGER"),
             ("duration_minutes", "INTEGER"),
@@ -167,6 +170,7 @@ def init_db() -> None:
             if name not in existing:
                 db.execute(f"ALTER TABLE reports ADD COLUMN {name} {definition}")
         db.execute("CREATE INDEX IF NOT EXISTS reports_profile_created_idx ON reports (profile_id, created_at DESC)")
+        db.execute("CREATE INDEX IF NOT EXISTS reports_profile_reviewed_idx ON reports (profile_id, reviewed_at DESC)")
         db.execute(
             "CREATE INDEX IF NOT EXISTS reports_profile_match_player_role_idx ON reports (profile_id, match_id, player_slot, role)"
         )
@@ -213,6 +217,7 @@ def init_db() -> None:
 def save_report(report: CoachingReport, profile_id: Optional[str] = None, metrics: Optional[dict] = None) -> None:
     init_db()
     payload = report.model_dump_json()
+    reviewed_at = datetime.now(timezone.utc).isoformat()
     values = (
         report.id,
         report.match_id,
@@ -232,6 +237,7 @@ def save_report(report: CoachingReport, profile_id: Optional[str] = None, metric
         report.account_id,
         report.role,
         int(metrics.get("start_time") or 0) or None,
+        reviewed_at,
         metrics.get("patch"),
         metrics.get("rank_tier"),
         report.summary.duration_minutes,
@@ -252,11 +258,11 @@ def save_report(report: CoachingReport, profile_id: Optional[str] = None, metric
                 INSERT INTO reports (
                   id, match_id, player_slot, hero, result, created_at, kda, gpm,
                   main_problem, confidence, payload, profile_id, account_id, role,
-                  match_started_at, patch, rank_tier, duration_minutes, deaths, last_hits,
+                  match_started_at, reviewed_at, patch, rank_tier, duration_minutes, deaths, last_hits,
                   hero_damage, tower_damage, healing, kill_participation,
                   summary_note, reflection_prompt
                 )
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT (id) DO UPDATE SET
                   match_id = EXCLUDED.match_id,
                   player_slot = EXCLUDED.player_slot,
@@ -272,6 +278,7 @@ def save_report(report: CoachingReport, profile_id: Optional[str] = None, metric
                   account_id = EXCLUDED.account_id,
                   role = EXCLUDED.role,
                   match_started_at = EXCLUDED.match_started_at,
+                  reviewed_at = EXCLUDED.reviewed_at,
                   patch = EXCLUDED.patch,
                   rank_tier = EXCLUDED.rank_tier,
                   duration_minutes = EXCLUDED.duration_minutes,
@@ -295,11 +302,11 @@ def save_report(report: CoachingReport, profile_id: Optional[str] = None, metric
             INSERT OR REPLACE INTO reports (
               id, match_id, player_slot, hero, result, created_at, kda, gpm,
               main_problem, confidence, payload, profile_id, account_id, role,
-              match_started_at, patch, rank_tier, duration_minutes, deaths, last_hits,
+              match_started_at, reviewed_at, patch, rank_tier, duration_minutes, deaths, last_hits,
               hero_damage, tower_damage, healing, kill_participation,
               summary_note, reflection_prompt
             )
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             values + extended,
         )
@@ -359,7 +366,7 @@ def list_reports(profile_id: Optional[str] = None) -> list[dict]:
                        main_problem, confidence, summary_note
                 FROM reports
                 WHERE profile_id = %s
-                ORDER BY match_started_at DESC NULLS LAST, created_at DESC
+                ORDER BY reviewed_at DESC NULLS LAST, match_started_at DESC NULLS LAST, created_at DESC
                 """,
                 (profile_id,),
             ).fetchall()
@@ -386,7 +393,7 @@ def list_reports(profile_id: Optional[str] = None) -> list[dict]:
                    main_problem, confidence, summary_note
             FROM reports
             WHERE profile_id = ?
-            ORDER BY match_started_at DESC, created_at DESC, rowid DESC
+            ORDER BY reviewed_at DESC, match_started_at DESC, created_at DESC, rowid DESC
             """,
             (profile_id,),
         ).fetchall()
@@ -433,14 +440,14 @@ def list_report_payloads(limit: int = 50, profile_id: Optional[str] = None) -> l
     if using_postgres():
         with postgres_connect() as db:
             rows = db.execute(
-                "SELECT payload FROM reports WHERE profile_id = %s ORDER BY match_started_at DESC NULLS LAST, created_at DESC LIMIT %s",
+                "SELECT payload FROM reports WHERE profile_id = %s ORDER BY reviewed_at DESC NULLS LAST, match_started_at DESC NULLS LAST, created_at DESC LIMIT %s",
                 (profile_id, limit),
             ).fetchall()
         return [_with_report_fallbacks(json.loads(row[0])) for row in rows]
 
     with connect() as db:
         rows = db.execute(
-            "SELECT payload FROM reports WHERE profile_id = ? ORDER BY match_started_at DESC, created_at DESC, rowid DESC LIMIT ?",
+            "SELECT payload FROM reports WHERE profile_id = ? ORDER BY reviewed_at DESC, match_started_at DESC, created_at DESC, rowid DESC LIMIT ?",
             (profile_id, limit),
         ).fetchall()
     return [_with_report_fallbacks(json.loads(row[0])) for row in rows]

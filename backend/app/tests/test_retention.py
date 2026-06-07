@@ -200,3 +200,29 @@ def test_saved_report_detail_marks_latest_review(monkeypatch, tmp_path) -> None:
 
     assert older_detail["is_latest"] is False
     assert latest_detail["is_latest"] is True
+
+
+def test_dashboard_current_mission_uses_latest_review_not_latest_match(monkeypatch, tmp_path) -> None:
+    use_temp_database(monkeypatch, tmp_path)
+    _, profile = create_session()
+
+    first_metrics = calculate_player_metrics(sample_match(), 0)
+    first_metrics["match_id"] = 7000000002
+    first_metrics["start_time"] = 2000000000
+    first_metrics["deaths"] = 9
+    first = generate_report(sample_match(), first_metrics)
+    first.id = f"{first.id}-{profile['id'][:8]}-first"
+    storage.save_report(first, profile["id"], first_metrics)
+
+    second_metrics = calculate_player_metrics(sample_match(), 0)
+    second_metrics["match_id"] = 7000000003
+    second_metrics["start_time"] = 1000000000
+    second_metrics["deaths"] = 2
+    second_metrics["gpm"] = 320
+    second = generate_report(sample_match(), second_metrics)
+    second.id = f"{second.id}-{profile['id'][:8]}-second"
+    storage.save_report(second, profile["id"], second_metrics)
+
+    dashboard = main.get_dashboard(profile)
+
+    assert dashboard["active_mission"]["title"] == second.next_match_mission.title
