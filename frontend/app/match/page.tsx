@@ -20,6 +20,17 @@ export default async function MatchPage() {
   const connected = Boolean(dashboard.profile.steam_account_id);
   const recentMatches = connected ? await getMyRecentMatches() : [];
   const latestMatch = recentMatches[0];
+  const latestReviewedReport = dashboard.recent_reports[0];
+  const latestReviewedMatchId = latestReviewedReport?.match_id;
+  const latestPublicMatchIsNewer =
+    Boolean(connected && latestMatch && latestReviewedMatchId && latestMatch.match_id !== latestReviewedMatchId);
+  const missionTitle = latestPublicMatchIsNewer
+    ? `${latestMatch?.hero ?? "Your latest match"} is waiting for a review`
+    : dashboard.active_mission?.title ?? "Complete your first review";
+  const missionExplanation = latestPublicMatchIsNewer
+    ? `Your most recent public match is Match ${latestMatch?.match_id}. Review it to refresh the mission from the newest game.`
+    : dashboard.active_mission?.explanation ??
+      "DotaReframe will turn your match into one goal that is easy to check after the next game.";
 
   return (
     <AppShell active="new-review">
@@ -48,16 +59,19 @@ export default async function MatchPage() {
 
         <section className="progress-hero">
           <div className="progress-primary">
-            <span><Target size={18} aria-hidden /> Current mission</span>
-            <h2>{dashboard.active_mission?.title ?? "Complete your first review"}</h2>
-            <p>
-              {dashboard.active_mission?.explanation ??
-                "DotaReframe will turn your match into one goal that is easy to check after the next game."}
-            </p>
+            <span><Target size={18} aria-hidden /> {latestPublicMatchIsNewer ? "Latest match waiting" : "Current mission"}</span>
+            <h2>{missionTitle}</h2>
+            <p>{missionExplanation}</p>
             <div className="dashboard-coach-note">
               <strong>Coach note</strong>
               <p>{dashboard.coach_note ?? "Open a report to get one clear next step."}</p>
             </div>
+            {latestPublicMatchIsNewer && dashboard.active_mission ? (
+              <div className="inline-note">
+                <Target size={18} aria-hidden />
+                <span>Last reviewed mission: {dashboard.active_mission.title}</span>
+              </div>
+            ) : null}
             {latestMatch ? (
               <Link className="button primary" href={`/match/${latestMatch.match_id}/review`}>
                 Review Latest Match
