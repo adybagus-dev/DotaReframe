@@ -209,7 +209,7 @@ export function ReportView({
             <article className="mistake-card" key={mistake.title}>
               <h3>{mistake.title}</h3>
               <span className="mistake-confidence">
-                {mistake.confidence} confidence · {mistake.evidence_source.replaceAll("_", " ")}
+                {mistake.confidence ?? "medium"} confidence · {(mistake.evidence_source ?? "final_stats").replaceAll("_", " ")}
               </span>
               <p>{mistake.what_happened}</p>
               <div className="evidence-box">

@@ -26,8 +26,8 @@ export type Mistake = {
   title: string;
   what_happened: string;
   evidence: string[];
-  confidence: "low" | "medium" | "high";
-  evidence_source: "final_stats" | "parsed_events" | "cohort" | "practical_target";
+  confidence?: "low" | "medium" | "high";
+  evidence_source?: "final_stats" | "parsed_events" | "cohort" | "practical_target";
   why_it_matters: string;
   try_next_game: string;
 };
