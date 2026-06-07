@@ -26,6 +26,8 @@ class Mistake(BaseModel):
     title: str
     what_happened: str
     evidence: list[str]
+    confidence: Literal["low", "medium", "high"] = "medium"
+    evidence_source: Literal["final_stats", "parsed_events", "cohort", "practical_target"] = "final_stats"
     why_it_matters: str
     try_next_game: str
 
@@ -49,6 +51,24 @@ class ComparisonContext(BaseModel):
     rank_label: Optional[str] = None
     patch: Optional[str] = None
     baseline: str
+    source: Literal["cohort", "practical_target"] = "practical_target"
+    sample_size: int = 0
+
+
+class BenchmarkMetric(BaseModel):
+    metric: str
+    label: str
+    user_value: int
+    comparison_value: int
+    percentile: Optional[int] = None
+    direction: Literal["higher", "lower"] = "higher"
+
+
+class BenchmarkContext(BaseModel):
+    source: Literal["cohort", "practical_target"]
+    label: str
+    sample_size: int
+    metrics: list[BenchmarkMetric]
 
 
 class NextMatchMission(BaseModel):
@@ -103,6 +123,18 @@ class CoachingReport(BaseModel):
     limitations: list[str]
     account_id: Optional[int] = None
     comparison_context: Optional[ComparisonContext] = None
+    benchmark_context: Optional[BenchmarkContext] = None
     next_match_mission: Optional[NextMatchMission] = None
     timeline: list[TimelineEvent] = Field(default_factory=list)
     progress: Optional[ProgressComparison] = None
+    feedback: Optional[dict] = None
+
+
+class ReportFeedbackRequest(BaseModel):
+    helpful: bool
+    reason: Optional[Literal["wrong_role", "weak_evidence", "too_generic", "hero_mismatch"]] = None
+
+
+class SessionResponse(BaseModel):
+    token: str
+    profile: dict

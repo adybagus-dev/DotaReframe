@@ -11,15 +11,16 @@ Database: Supabase Postgres
 ## 1. Supabase Postgres
 
 1. Create a Supabase project.
-2. Copy the Postgres connection string.
-3. Use the pooled or direct connection string as `DATABASE_URL`.
-4. Make sure the connection string includes SSL, for example:
+2. Apply every SQL file in `supabase/migrations` in filename order.
+3. Copy the Postgres connection string.
+4. Use the pooled or direct connection string as `DATABASE_URL`.
+5. Make sure the connection string includes SSL, for example:
 
 ```text
 postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres?sslmode=require
 ```
 
-The backend creates the `reports` table automatically when needed.
+The backend creates compatible tables automatically for local development. Production migrations create private profile, session, report, benchmark, and feedback storage. Browser-facing Supabase roles have no table grants; FastAPI is the only data-access layer.
 
 ## 2. Vercel Backend
 
@@ -82,6 +83,7 @@ After the frontend deploys, set its production URL as the backend project's `FRO
 - Production uses Supabase Postgres because serverless function filesystems are not durable application storage.
 - The frontend shows an honest retry screen when the backend or OpenDota is unavailable. Production must point `BACKEND_URL` to the Vercel backend project.
 - `FRONTEND_URL` and `BACKEND_PUBLIC_URL` are required for the Steam OpenID callback.
+- Guest identity uses a 90-day HttpOnly cookie on the frontend domain. Steam login upgrades that guest profile through a one-time backend exchange code.
 - Keep the frontend and backend as separate Vercel projects with `frontend` and `backend` as their respective root directories.
 
 ## Automatic Production Deployments

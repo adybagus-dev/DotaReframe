@@ -2,7 +2,7 @@
 
 ## 1. Project Summary
 
-DotaReframe is a post-match Dota 2 review app. A user enters a match ID, selects their player, and receives a simple, evidence-based coaching report.
+DotaReframe is a post-match Dota 2 improvement app. A user reviews a match, receives one evidence-based mission, and returns after the next game to see whether that habit improved.
 
 The MVP is a local web app focused on one clear flow:
 
@@ -57,17 +57,19 @@ The first local version should include:
 6. Generate a structured coaching report
 7. Display the report in a simple dashboard
 8. Save report locally
-9. Let user view saved reports from local storage
+9. Let each private guest or Steam profile view its own saved reports
+10. Remember one active mission and compare it with the next reviewed match
+11. Track completed-mission streaks and report usefulness feedback
 
 MVP navigation should use a simple sidebar with only:
 
 - New Review
 - Saved Reports
 
-MVP should not include:
+The retention release should not include:
 
 - Full rank benchmark system
-- Authentication or user accounts
+- Email/password accounts; identity uses a private guest session with optional verified Steam connection
 - Settings page
 - Delete or edit saved report feature
 - Anything outside the post-match review and saved-report flow
@@ -486,7 +488,7 @@ Analyzer Service
     |
 AI Coach Service
     |
-SQLite
+SQLite locally / Supabase Postgres in production
 ```
 
 Recommended stack:
@@ -494,7 +496,7 @@ Recommended stack:
 - Frontend: Next.js, TypeScript, Tailwind CSS
 - Backend: Python, FastAPI, Pydantic, httpx
 - AI: one structured-output AI call
-- Database: SQLite
+- Database: SQLite locally and Supabase Postgres in production
 - Data source: OpenDota
 - Tests: pytest for backend logic
 
@@ -533,6 +535,23 @@ Service responsibilities:
 ## 11. API Endpoints
 
 MVP endpoints:
+
+Private retention endpoints:
+
+```text
+GET /me/dashboard
+GET /me/reports
+GET /me/reports/{report_id}
+GET /me/recent-matches
+GET /me/matches/{match_id}/review-context
+POST /me/reports
+PUT /me/reports/{report_id}/feedback
+POST /sessions/logout
+POST /auth/steam/start
+GET /auth/steam/callback
+```
+
+The frontend stores a random session token in an HttpOnly cookie. FastAPI stores only its hash, owns every report by profile, and upgrades a guest profile after verified Steam OpenID.
 
 ```text
 GET /health

@@ -6,6 +6,7 @@ def sample_match() -> dict:
         "match_id": 8123456789,
         "duration": 2520,
         "radiant_win": False,
+        "version": 1,
         "players": [
             {
                 "player_slot": 0,

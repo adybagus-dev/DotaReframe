@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { CoachingReport, SnapshotValue } from "@/lib/types";
 import { ButtonLink, StatusPill } from "./ui";
+import { ReportFeedback } from "./report-feedback";
 
 function snapshotTone(value: SnapshotValue) {
   if (value === "Good") return "good";
@@ -57,10 +58,6 @@ export function ReportView({
         <MetricCard label="Role" value={report.role} />
         <MetricCard label="Duration" value={`${report.summary.duration_minutes}m`} />
         <MetricCard label="KDA" value={report.summary.kda} />
-        <MetricCard label="GPM" value={String(report.summary.gpm)} />
-        <MetricCard label="XPM" value={String(report.summary.xpm)} />
-        <MetricCard label="Last Hits" value={String(report.summary.last_hits)} />
-        <MetricCard label="Deaths" value={String(report.summary.deaths)} />
       </section>
 
       {report.next_match_mission ? (
@@ -91,6 +88,59 @@ export function ReportView({
         </section>
       ) : null}
 
+      <section className="focus-card">
+        <div>
+          <span>Main thing to fix</span>
+          <h2>{report.main_problem}</h2>
+          <p>
+            Evidence: {report.main_evidence.join(", ")}. Try next game:{" "}
+            {primaryMistake?.try_next_game ?? "focus on one clear habit you can repeat for the next match."}
+          </p>
+        </div>
+      </section>
+
+      {practiceDrills[0] ? (
+        <section className="primary-drill">
+          <span>Practice this next</span>
+          <h2>{practiceDrills[0].title}</h2>
+          <p>{practiceDrills[0].how_to_practice}</p>
+        </section>
+      ) : null}
+
+      {report.benchmark_context ? (
+        <section className="benchmark-strip">
+          <div>
+            <span>{report.benchmark_context.source === "cohort" ? "Compared with similar matches" : "Practical role targets"}</span>
+            <strong>{report.benchmark_context.label}</strong>
+            <small>
+              {report.benchmark_context.sample_size
+                ? `${report.benchmark_context.sample_size} anonymized reports`
+                : "A transparent role guideline until enough similar reports exist"}
+            </small>
+          </div>
+          <div className="benchmark-metrics">
+            {report.benchmark_context.metrics.slice(0, 3).map((metric) => (
+              <article key={metric.metric}>
+                <span>{metric.label}</span>
+                <strong>{metric.user_value}</strong>
+                <small>
+                  {metric.percentile != null ? `${metric.percentile}th percentile` : `Target ${metric.comparison_value}`}
+                </small>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <details className="full-breakdown">
+        <summary>
+          <span>
+            <strong>Full Match Breakdown</strong>
+            <small>Mistakes, game-phase plan, strengths, checklist, and evidence</small>
+          </span>
+          <ChevronDown size={20} aria-hidden />
+        </summary>
+        <div className="breakdown-content">
       {report.comparison_context ? (
         <section className="context-strip">
           <div>
@@ -107,18 +157,6 @@ export function ReportView({
           <p>{report.comparison_context.baseline}</p>
         </section>
       ) : null}
-
-      <section className="focus-card">
-        <div>
-          <span>Main thing to fix</span>
-          <h2>{report.main_problem}</h2>
-          <p>
-            Evidence: {report.main_evidence.join(", ")}. Try next game:{" "}
-            {primaryMistake?.try_next_game ?? "focus on one clear habit you can repeat for the next match."}
-          </p>
-        </div>
-      </section>
-
       {report.timeline?.length ? (
         <section className="section-block">
           <div className="section-heading">
@@ -170,6 +208,9 @@ export function ReportView({
           {report.mistakes.map((mistake) => (
             <article className="mistake-card" key={mistake.title}>
               <h3>{mistake.title}</h3>
+              <span className="mistake-confidence">
+                {mistake.confidence} confidence · {mistake.evidence_source.replaceAll("_", " ")}
+              </span>
               <p>{mistake.what_happened}</p>
               <div className="evidence-box">
                 <strong>Evidence</strong>
@@ -193,8 +234,8 @@ export function ReportView({
       {timingNotes.length ? (
         <section className="section-block">
           <div className="section-heading">
-            <span>Timing Notes</span>
-            <h2>When the game started to get hard</h2>
+            <span>Game-phase plan</span>
+            <h2>What to focus on through the match</h2>
           </div>
           <div className="timing-grid">
             {timingNotes.map((note) => (
@@ -261,14 +302,14 @@ export function ReportView({
         </section>
       </div>
 
-      {practiceDrills.length ? (
+      {practiceDrills.length > 1 ? (
         <section className="section-block">
           <div className="section-heading">
             <span>Practice Drills</span>
             <h2>How to improve this, not just read it</h2>
           </div>
           <div className="drill-grid">
-            {practiceDrills.map((drill) => (
+            {practiceDrills.slice(1).map((drill) => (
               <article className="drill-card" key={drill.title}>
                 <h3>{drill.title}</h3>
                 <p>
@@ -296,9 +337,13 @@ export function ReportView({
       </details>
 
       <section className="limitation-note">
-        <strong>AI limitation note</strong>
+        <strong>What this review can and cannot see</strong>
         <p>{report.limitations.join(" ")}</p>
       </section>
+        </div>
+      </details>
+
+      <ReportFeedback reportId={report.id} initial={report.feedback} />
 
       <div className="footer-actions">
         <Link href={`/match/${report.match_id}/players`} className="text-link">

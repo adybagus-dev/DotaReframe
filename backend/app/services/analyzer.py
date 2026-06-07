@@ -136,8 +136,13 @@ def calculate_player_metrics(match: dict, player_slot: int, selected_role: Optio
         "kill_participation": participation,
         "rank_tier": int(player.get("rank_tier") or match.get("average_rank") or 0) or None,
         "patch": match.get("patch"),
+        "start_time": int(match.get("start_time") or 0),
         "is_parsed": bool(match.get("version")),
         "purchase_log": player.get("purchase_log") or [],
         "objectives": match.get("objectives") or [],
         "teamfights": match.get("teamfights") or [],
+        "observer_wards_placed": int(player.get("obs_placed") or 0),
+        "sentry_wards_placed": int(player.get("sen_placed") or 0),
+        "wards_placed": int(player.get("obs_placed") or 0) + int(player.get("sen_placed") or 0),
+        "camps_stacked": int(player.get("camps_stacked") or 0),
     }

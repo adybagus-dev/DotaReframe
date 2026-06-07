@@ -75,6 +75,8 @@ export const sampleReport: CoachingReport = {
       title: "Fought before your item timing",
       what_happened: "You joined fights before your first core item was ready.",
       evidence: ["3 deaths before minute 18", "Battle Fury finished at 17:42"],
+      confidence: "high",
+      evidence_source: "parsed_events",
       why_it_matters: "As a carry, dying before your farming item delays your strongest timing.",
       try_next_game: "Farm safer until your first core item, unless your team is defending a tower."
     },
@@ -82,6 +84,8 @@ export const sampleReport: CoachingReport = {
       title: "Farming slowed after minute 10",
       what_happened: "Your gold growth dropped when you started joining optional fights.",
       evidence: ["Farming slowed after minute 10", "GPM finished at 512"],
+      confidence: "medium",
+      evidence_source: "final_stats",
       why_it_matters: "Juggernaut needs steady gold before he can take over fights.",
       try_next_game: "Only join early fights when they protect your tower or secure a clear objective."
     },
@@ -89,6 +93,8 @@ export const sampleReport: CoachingReport = {
       title: "Kills did not become towers",
       what_happened: "Your team got kills, but your tower damage stayed low.",
       evidence: ["Tower damage: 1240", "Hero damage: 24100"],
+      confidence: "medium",
+      evidence_source: "final_stats",
       why_it_matters: "Kills matter more when they lead to towers, Roshan, or enemy jungle control.",
       try_next_game: "After every won fight, immediately check if you can hit a tower or take enemy camps."
     }

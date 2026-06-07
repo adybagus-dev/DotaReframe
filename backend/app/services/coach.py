@@ -13,6 +13,7 @@ from app.schemas.report import (
     TimelineEvent,
     TimingNote,
 )
+from app.services.benchmarks import build_benchmark
 
 
 ROLE_PROFILES = {
@@ -67,7 +68,12 @@ def _role_slug(role: str) -> str:
     return role.lower().replace(" ", "-")
 
 
-def generate_report(match: dict, metrics: dict, previous_reports: list[dict] | None = None) -> CoachingReport:
+def generate_report(
+    match: dict,
+    metrics: dict,
+    previous_reports: list[dict] | None = None,
+    benchmark_samples: list[dict] | None = None,
+) -> CoachingReport:
     mistakes = _mistakes(metrics)
     main = mistakes[0]
     summary = ReportSummary(
@@ -115,6 +121,7 @@ def generate_report(match: dict, metrics: dict, previous_reports: list[dict] | N
         ],
         account_id=metrics.get("account_id"),
         comparison_context=_comparison_context(metrics),
+        benchmark_context=build_benchmark(metrics, benchmark_samples or []),
         next_match_mission=_next_match_mission(metrics),
         timeline=_timeline(metrics),
         progress=_progress(metrics, previous_reports or []),
@@ -205,6 +212,8 @@ def _next_match_mission(metrics: dict) -> NextMatchMission:
 
 
 def _timeline(metrics: dict) -> list[TimelineEvent]:
+    if not metrics.get("is_parsed"):
+        return []
     events: list[TimelineEvent] = []
     for purchase in metrics.get("purchase_log", []):
         time = int(purchase.get("time") or 0)
@@ -375,14 +384,17 @@ def _mistakes(metrics: dict) -> list[Mistake]:
     is_support = metrics["role"] in {"Soft Support", "Hard Support"}
 
     if metrics["deaths"] >= profile["deaths"]:
+        parsed = bool(metrics.get("is_parsed"))
         mistakes.append(
             Mistake(
-                title="You died in unsafe areas",
+                title="You died in unsafe areas" if parsed else "Your deaths may come from unsafe map movement",
                 what_happened=(
-                    "You gave away too many deaths. The important part is not the number alone; it is that each death "
-                    "stops your farming, delays your next fight, and gives the enemy time to take space."
+                    "The final statistics show a high death count. Without parsed event timing, the report cannot confirm each position, "
+                    "but repeated deaths often come from entering areas without enough information."
                 ),
                 evidence=[f"Deaths: {metrics['deaths']}", f"KDA: {metrics['kda']}"],
+                confidence="high" if parsed else "low",
+                evidence_source="parsed_events" if parsed else "final_stats",
                 why_it_matters="Every death removes you from the map and gives the enemy time to take space.",
                 try_next_game=(
                     f"As {metrics['role']}, before walking into a dark area, ask: who can kill me, and where were they last seen? "
@@ -416,6 +428,8 @@ def _mistakes(metrics: dict) -> list[Mistake]:
                 title=f"Your {profile['farm_label']} was low",
                 what_happened=what_happened,
                 evidence=[f"Role: {metrics['role']}", f"GPM: {metrics['gpm']} / role target: {profile['gpm']}"],
+                confidence="medium",
+                evidence_source="practical_target",
                 why_it_matters=why_it_matters,
                 try_next_game=try_next,
             )
@@ -439,6 +453,8 @@ def _mistakes(metrics: dict) -> list[Mistake]:
                     f"Tower damage: {metrics['tower_damage']} / role target: {profile['tower_damage']}",
                     f"Hero damage: {metrics['hero_damage']}",
                 ],
+                confidence="medium",
+                evidence_source="practical_target",
                 why_it_matters="Kills matter more when they lead to towers, Roshan, or enemy jungle control.",
                 try_next_game=(
                     "After every won fight, look at the closest lane first. If the wave is near a tower, help your team hit, ward, or guard it. "
@@ -453,6 +469,8 @@ def _mistakes(metrics: dict) -> list[Mistake]:
                 title="Focus on one clear next step",
                 what_happened="Your basic stats look stable, so the best next step is cleaner objective conversion.",
                 evidence=[f"KDA: {metrics['kda']}", f"Tower damage: {metrics['tower_damage']}"],
+                confidence="low",
+                evidence_source="final_stats",
                 why_it_matters="Good games become easier to win when your team turns advantages into map control.",
                 try_next_game="After won fights, call one simple objective: tower, Roshan, or enemy jungle.",
             )

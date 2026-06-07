@@ -26,6 +26,8 @@ export type Mistake = {
   title: string;
   what_happened: string;
   evidence: string[];
+  confidence: "low" | "medium" | "high";
+  evidence_source: "final_stats" | "parsed_events" | "cohort" | "practical_target";
   why_it_matters: string;
   try_next_game: string;
 };
@@ -49,6 +51,24 @@ export type ComparisonContext = {
   rank_label?: string;
   patch?: string;
   baseline: string;
+  source: "cohort" | "practical_target";
+  sample_size: number;
+};
+
+export type BenchmarkMetric = {
+  metric: string;
+  label: string;
+  user_value: number;
+  comparison_value: number;
+  percentile?: number | null;
+  direction: "higher" | "lower";
+};
+
+export type BenchmarkContext = {
+  source: "cohort" | "practical_target";
+  label: string;
+  sample_size: number;
+  metrics: BenchmarkMetric[];
 };
 
 export type NextMatchMission = {
@@ -118,9 +138,11 @@ export type CoachingReport = {
   limitations: string[];
   account_id?: number;
   comparison_context?: ComparisonContext;
+  benchmark_context?: BenchmarkContext;
   next_match_mission?: NextMatchMission;
   timeline?: TimelineEvent[];
   progress?: ProgressComparison;
+  feedback?: ReportFeedback;
 };
 
 export type SavedReportListItem = {
@@ -144,4 +166,30 @@ export type RecentMatch = {
   kda: string;
   duration_minutes: number;
   started_at: number;
+};
+
+export type PlayerProfile = {
+  id: string;
+  steam_account_id?: number;
+  is_guest: boolean;
+};
+
+export type ReportFeedback = {
+  helpful: boolean;
+  reason?: "wrong_role" | "weak_evidence" | "too_generic" | "hero_mismatch";
+};
+
+export type DashboardSummary = {
+  profile: PlayerProfile;
+  total_reports: number;
+  mission_streak: number;
+  active_mission?: NextMatchMission;
+  latest_progress?: ProgressComparison;
+  recent_reports: SavedReportListItem[];
+};
+
+export type ReviewContext = {
+  match_id: number;
+  detected_role: string;
+  player: PlayerSummary;
 };
