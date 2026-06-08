@@ -1,9 +1,7 @@
-import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  outputFileTracingRoot: path.join(__dirname, ".."),
   env: {
     NEXT_PUBLIC_BUILD_ID:
       process.env.VERCEL_GIT_COMMIT_SHA ??
