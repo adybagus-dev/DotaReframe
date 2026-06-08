@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ButtonLink, EmptyState } from "@/components/ui";
 import { PlayerReviewForm } from "@/components/player-review-form";
 import { getPlayers } from "@/lib/api";
 import type { PlayerSummary } from "@/lib/types";
@@ -13,7 +14,22 @@ type PageProps = {
 export default async function PlayerSelectionPage({ params, searchParams }: PageProps) {
   const { matchId } = await params;
   const { accountId } = await searchParams;
-  const players = await getPlayers(matchId);
+  let players: PlayerSummary[] = [];
+  try {
+    players = await getPlayers(matchId);
+  } catch {
+    return (
+      <AppShell active="new-review">
+        <div className="page-stack">
+          <EmptyState
+            title="Player list unavailable"
+            body="We could not load the match players right now. Try the match again or paste the match ID manually."
+            action={<ButtonLink href="/match">Back to Match Input</ButtonLink>}
+          />
+        </div>
+      </AppShell>
+    );
+  }
   const radiant = players.filter((player) => player.team === "Radiant");
   const dire = players.filter((player) => player.team === "Dire");
 

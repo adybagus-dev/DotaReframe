@@ -7,7 +7,12 @@ import { getSavedReports } from "@/lib/api";
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-  const reports = await getSavedReports();
+  let reports: Awaited<ReturnType<typeof getSavedReports>> = [];
+  try {
+    reports = await getSavedReports();
+  } catch {
+    reports = [];
+  }
 
   return (
     <AppShell active="saved-reports">
@@ -25,8 +30,8 @@ export default async function ReportsPage() {
 
         {reports.length === 0 ? (
           <EmptyState
-            title="No saved reports yet"
-            body="Analyze a match first, then your reports will appear here."
+            title="No saved reports available"
+            body="Analyze a match first, or try again if the report list could not load."
             action={<ButtonLink href="/match">Start New Review</ButtonLink>}
           />
         ) : (

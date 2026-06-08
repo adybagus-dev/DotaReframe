@@ -7,17 +7,42 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { MatchIdForm } from "@/components/match-id-form";
-import { StatusPill } from "@/components/ui";
+import { ButtonLink, EmptyState, StatusPill } from "@/components/ui";
 import { getDashboard, getMyRecentMatches } from "@/lib/api";
+import type { DashboardSummary } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function MatchPage() {
-  const dashboard = await getDashboard();
-  const connected = Boolean(dashboard.profile.steam_account_id);
+  let dashboard: DashboardSummary | null = null;
+  try {
+    dashboard = await getDashboard();
+  } catch {
+    return (
+      <AppShell active="new-review">
+        <div className="page-stack">
+          <div className="page-heading">
+            <span className="eyebrow">New Review</span>
+            <h1>Review newest match</h1>
+            <p>We could not load your dashboard right now, but your saved reports are still safe.</p>
+          </div>
+          <EmptyState
+            title="Dashboard temporarily unavailable"
+            body="Try again in a moment. If this keeps happening, start a manual review from a match ID."
+            action={<ButtonLink href="/match">Try Again</ButtonLink>}
+          />
+          <div id="manual-review">
+            <MatchIdForm connected={false} />
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const connected = Boolean(dashboard?.profile?.steam_account_id);
   const recentMatches = connected ? await getMyRecentMatches().catch(() => []) : [];
   const latestMatch = recentMatches[0];
-  const latestReviewedReport = dashboard.recent_reports[0];
+  const latestReviewedReport = dashboard?.recent_reports?.[0];
 
   return (
     <AppShell active="new-review">
@@ -82,9 +107,9 @@ export default async function MatchPage() {
           </div>
           <div>
             <span>Mission from last review</span>
-            <h2>{dashboard.active_mission?.title ?? "Complete your first review"}</h2>
+            <h2>{dashboard?.active_mission?.title ?? "Complete your first review"}</h2>
             <p>
-              {dashboard.active_mission?.explanation ??
+              {dashboard?.active_mission?.explanation ??
                 "DotaReframe will turn your match into one goal that is easy to check after the next game."}
             </p>
             <strong>
@@ -126,7 +151,7 @@ export default async function MatchPage() {
           </section>
         ) : null}
 
-        {dashboard.recent_reports.length ? (
+        {dashboard?.recent_reports?.length ? (
           <section className="section-block">
             <div className="section-heading">
               <span>Your history</span>
