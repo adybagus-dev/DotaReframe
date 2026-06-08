@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { DeployGuard } from "@/components/deploy-guard";
+import { BUILD_ID } from "@/lib/build";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body data-build-id={BUILD_ID}>
+        <DeployGuard />
+        {children}
+      </body>
     </html>
   );
 }
