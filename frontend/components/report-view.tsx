@@ -141,45 +141,34 @@ export function ReportView({
         </section>
       ) : null}
 
-      <section className="item-lesson-card">
-        <div className="item-lesson-header">
-          <div>
-            <span>{itemReview?.checkpoints?.length ? "Item timing lesson" : "Item build review"}</span>
-            <h2>{itemReview?.checkpoints?.length ? "What your build had to answer" : "No confirmed item timing yet"}</h2>
-            <p>
-              {itemReview?.checkpoints?.length
-                ? itemReview.main_lesson
-                : "This match or saved report does not include parsed item purchase timing, so DotaReframe will not pretend to know the exact item windows."}
-            </p>
-          </div>
-          <ShieldAlert size={28} aria-hidden />
-        </div>
-        {itemReview?.checkpoints?.length ? (
-          <>
-            <div className="item-checkpoint-grid">
-              {itemReview.checkpoints.slice(0, 3).map((checkpoint) => (
-                <article className="item-checkpoint" key={checkpoint.minute}>
-                  <div className="item-checkpoint-title">
-                    <strong>{checkpoint.minute} min</strong>
-                    <StatusPill tone={checkpoint.confidence === "high" ? "good" : "neutral"}>
-                      {checkpoint.confidence} confidence
-                    </StatusPill>
-                  </div>
-                  <ItemPills label="Your items" items={checkpoint.player_items} tone="info" />
-                  <ItemPills label="Enemy threats" items={checkpoint.enemy_key_items} tone="risk" />
-                  <p>{checkpoint.advice}</p>
-                </article>
-              ))}
+      {itemReview?.checkpoints?.length ? (
+        <section className="item-lesson-card">
+          <div className="item-lesson-header">
+            <div>
+              <span>Item timing lesson</span>
+              <h2>What your build had to answer</h2>
+              <p>{itemReview.main_lesson}</p>
             </div>
-            <strong className="item-next-lesson">{itemReview.next_match_item_lesson}</strong>
-          </>
-        ) : (
-          <strong className="item-next-lesson">
-            Next match: after the enemy damage type is clear, choose one item that helps you survive or save an ally
-            before taking optional fights.
-          </strong>
-        )}
-      </section>
+            <ShieldAlert size={28} aria-hidden />
+          </div>
+          <div className="item-checkpoint-grid">
+            {itemReview.checkpoints.slice(0, 3).map((checkpoint) => (
+              <article className="item-checkpoint" key={checkpoint.minute}>
+                <div className="item-checkpoint-title">
+                  <strong>{checkpoint.minute} min</strong>
+                  <StatusPill tone={checkpoint.confidence === "high" ? "good" : "neutral"}>
+                    {checkpoint.confidence} confidence
+                  </StatusPill>
+                </div>
+                <ItemPills label="Your items" items={checkpoint.player_items} tone="info" />
+                <ItemPills label="Enemy threats" items={checkpoint.enemy_key_items} tone="risk" />
+                <p>{checkpoint.advice}</p>
+              </article>
+            ))}
+          </div>
+          <strong className="item-next-lesson">{itemReview.next_match_item_lesson}</strong>
+        </section>
+      ) : null}
 
       <details className="full-breakdown">
         <summary>
