@@ -9,10 +9,11 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
-from app.schemas.report import ReportCreateRequest, ReportFeedbackRequest
+from app.schemas.report import CoachingReport, ReportCreateRequest, ReportFeedbackRequest
 from app.services.analyzer import build_player_list, calculate_player_metrics, hero_name, player_result
 from app.services.coach import generate_report
 from app.services.gemini import GeminiError, generate_dashboard_note
+from app.services.items import build_item_timing_review
 from app.services.opendota import OpenDotaError, fetch_match, fetch_recent_matches
 from app.services.storage import (
     database_backend,
@@ -111,8 +112,7 @@ async def _create_personal_report(request: ReportCreateRequest, profile: dict) -
     if request.role:
         duplicate = find_duplicate_report(profile["id"], request.match_id, request.player_slot, request.role)
         if duplicate:
-            duplicate.setdefault("feedback", None)
-            return duplicate
+            return await _return_duplicate_or_enrich_items(duplicate, request, profile)
 
     match = await get_match(request.match_id)
     metrics = calculate_player_metrics(match, request.player_slot, request.role)
@@ -121,8 +121,7 @@ async def _create_personal_report(request: ReportCreateRequest, profile: dict) -
         raise HTTPException(status_code=403, detail="That player is not connected to your Steam profile.")
     duplicate = find_duplicate_report(profile["id"], request.match_id, request.player_slot, metrics["role"])
     if duplicate:
-        duplicate.setdefault("feedback", None)
-        return duplicate
+        return _return_duplicate_or_enrich_items_from_match(duplicate, match, metrics, profile)
     report = generate_report(
         match,
         metrics,
@@ -141,6 +140,54 @@ async def _create_personal_report(request: ReportCreateRequest, profile: dict) -
     if save_warning:
         payload["save_warning"] = save_warning
     return payload
+
+
+def _return_duplicate(duplicate: dict) -> dict:
+    duplicate.setdefault("feedback", None)
+    return duplicate
+
+
+async def _return_duplicate_or_enrich_items(
+    duplicate: dict,
+    request: ReportCreateRequest,
+    profile: dict,
+) -> dict:
+    if duplicate.get("item_timing_review"):
+        return _return_duplicate(duplicate)
+
+    try:
+        match = await get_match(request.match_id)
+        metrics = calculate_player_metrics(match, request.player_slot, request.role)
+        verified_account = profile.get("steam_account_id")
+        if verified_account and metrics.get("account_id") != verified_account:
+            raise HTTPException(status_code=403, detail="That player is not connected to your Steam profile.")
+        return _return_duplicate_or_enrich_items_from_match(duplicate, match, metrics, profile)
+    except HTTPException:
+        raise
+    except Exception:
+        return _return_duplicate(duplicate)
+
+
+def _return_duplicate_or_enrich_items_from_match(
+    duplicate: dict,
+    match: dict,
+    metrics: dict,
+    profile: dict,
+) -> dict:
+    if duplicate.get("item_timing_review"):
+        return _return_duplicate(duplicate)
+
+    try:
+        item_review = build_item_timing_review(match, metrics)
+        if not item_review:
+            return _return_duplicate(duplicate)
+
+        report = CoachingReport.model_validate(duplicate)
+        report.item_timing_review = item_review
+        save_report(report, profile["id"], metrics)
+        return _return_duplicate(report.model_dump())
+    except Exception:
+        return _return_duplicate(duplicate)
 
 
 @app.post("/me/reports")
