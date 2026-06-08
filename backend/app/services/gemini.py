@@ -47,6 +47,7 @@ def refine_report_language(payload: dict[str, Any]) -> Optional[dict[str, Any]]:
         "training_plan": payload.get("training_plan", []),
         "summary_note": payload.get("summary_note"),
         "reflection_prompt": payload.get("reflection_prompt"),
+        "item_timing_review": payload.get("item_timing_review"),
     }
     instruction = (
         "You rewrite Dota coaching text in simple, day-to-day language.\n"
@@ -54,10 +55,12 @@ def refine_report_language(payload: dict[str, Any]) -> Optional[dict[str, Any]]:
         "Do not invent new evidence, timings, or statistics.\n"
         "Return JSON only with these keys:\n"
         "match_story, main_problem, practice_drills, training_plan, next_match_mission, progress, "
-        "summary_note, reflection_prompt\n"
+        "summary_note, reflection_prompt, item_timing_review\n"
         "Where practice_drills and training_plan stay arrays with the same length and intent.\n"
         "summary_note must be one short saved-report card sentence.\n"
         "reflection_prompt must be one direct question the player can answer after reading the report.\n"
+        "For item_timing_review, only rewrite main_lesson, next_match_item_lesson, and checkpoint advice. "
+        "Do not add items, timings, threats, answers, or new recommendations outside the input facts.\n"
         "Make the wording clear, short, and easy to read."
     )
 

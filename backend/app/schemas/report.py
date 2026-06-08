@@ -98,6 +98,24 @@ class ProgressComparison(BaseModel):
     message: str
 
 
+class ItemTimingCheckpoint(BaseModel):
+    minute: int
+    player_items: list[str]
+    enemy_key_items: list[str]
+    enemy_threats: list[str]
+    player_answers: list[str]
+    advice: str
+    confidence: Literal["low", "medium", "high"] = "medium"
+    evidence_source: Literal["parsed_events"] = "parsed_events"
+
+
+class ItemTimingReview(BaseModel):
+    main_lesson: str
+    checkpoints: list[ItemTimingCheckpoint]
+    next_match_item_lesson: str
+    limitations: list[str] = Field(default_factory=list)
+
+
 class CoachingReport(BaseModel):
     id: str
     match_id: int
@@ -127,6 +145,7 @@ class CoachingReport(BaseModel):
     next_match_mission: Optional[NextMatchMission] = None
     timeline: list[TimelineEvent] = Field(default_factory=list)
     progress: Optional[ProgressComparison] = None
+    item_timing_review: Optional[ItemTimingReview] = None
     summary_note: Optional[str] = None
     reflection_prompt: Optional[str] = None
     feedback: Optional[dict] = None

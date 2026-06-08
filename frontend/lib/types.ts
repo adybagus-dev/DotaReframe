@@ -98,6 +98,24 @@ export type ProgressComparison = {
   message: string;
 };
 
+export type ItemTimingCheckpoint = {
+  minute: number;
+  player_items: string[];
+  enemy_key_items: string[];
+  enemy_threats: string[];
+  player_answers: string[];
+  advice: string;
+  confidence: "low" | "medium" | "high";
+  evidence_source: "parsed_events";
+};
+
+export type ItemTimingReview = {
+  main_lesson: string;
+  checkpoints: ItemTimingCheckpoint[];
+  next_match_item_lesson: string;
+  limitations: string[];
+};
+
 export type CoachingReport = {
   id: string;
   match_id: number;
@@ -142,6 +160,7 @@ export type CoachingReport = {
   next_match_mission?: NextMatchMission;
   timeline?: TimelineEvent[];
   progress?: ProgressComparison;
+  item_timing_review?: ItemTimingReview | null;
   feedback?: ReportFeedback;
   summary_note?: string | null;
   reflection_prompt?: string | null;

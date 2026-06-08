@@ -27,7 +27,18 @@ def sample_match() -> dict:
                 "rank_tier": 54,
                 "purchase_log": [{"time": 600, "key": "phase_boots"}],
             },
-            {"player_slot": 128, "hero_id": 44, "kills": 15, "deaths": 4, "assists": 10, "gold_per_min": 658},
+            {
+                "player_slot": 128,
+                "hero_id": 44,
+                "kills": 15,
+                "deaths": 4,
+                "assists": 10,
+                "gold_per_min": 658,
+                "purchase_log": [
+                    {"time": 720, "key": "bfury"},
+                    {"time": 1180, "key": "desolator"},
+                ],
+            },
         ],
     }
 

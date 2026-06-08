@@ -19,6 +19,10 @@ def test_generate_report_contains_required_sections() -> None:
     assert report.summary_note
     assert report.reflection_prompt
     assert report.timeline[0].title == "Bought Phase Boots"
+    assert report.item_timing_review
+    assert report.item_timing_review.checkpoints
+    assert any("Phase Boots" in checkpoint.player_items for checkpoint in report.item_timing_review.checkpoints)
+    assert any("Physical burst" in checkpoint.enemy_threats for checkpoint in report.item_timing_review.checkpoints)
 
 
 def test_generate_report_uses_role_specific_expectations() -> None:
@@ -28,6 +32,24 @@ def test_generate_report_uses_role_specific_expectations() -> None:
     assert report.role == "Hard Support"
     assert report.performance_snapshot["farming"] == "Good"
     assert any("Hard Support" in item for item in report.decision_rules)
+
+
+def test_generate_report_support_item_advice_mentions_saves() -> None:
+    metrics = calculate_player_metrics(sample_match(), 0, "Hard Support")
+    report = generate_report(sample_match(), metrics)
+
+    assert report.item_timing_review
+    assert "Force Staff" in report.item_timing_review.next_match_item_lesson
+
+
+def test_generate_report_skips_item_review_without_purchase_logs() -> None:
+    match = sample_match()
+    for player in match["players"]:
+        player["purchase_log"] = []
+    metrics = calculate_player_metrics(match, 0)
+    report = generate_report(match, metrics)
+
+    assert report.item_timing_review is None
 
 
 def test_generate_report_compares_previous_mission() -> None:
@@ -72,6 +94,11 @@ def test_generate_report_uses_gemini_wording_when_available(monkeypatch) -> None
             "progress": {"message": "Simple progress text."},
             "summary_note": "Simple saved summary.",
             "reflection_prompt": "What will you do differently next game?",
+            "item_timing_review": {
+                "main_lesson": "Simple item lesson.",
+                "next_match_item_lesson": "Simple next item habit.",
+                "checkpoints": [{"advice": "Simple checkpoint advice."}],
+            },
         },
     )
 
@@ -86,6 +113,10 @@ def test_generate_report_uses_gemini_wording_when_available(monkeypatch) -> None
     assert report.next_match_mission.check_text == "Simple mission check."
     assert report.summary_note == "Simple saved summary."
     assert report.reflection_prompt == "What will you do differently next game?"
+    assert report.item_timing_review
+    assert report.item_timing_review.main_lesson == "Simple item lesson."
+    assert report.item_timing_review.next_match_item_lesson == "Simple next item habit."
+    assert report.item_timing_review.checkpoints[0].advice == "Simple checkpoint advice."
 
 
 def test_generate_report_falls_back_when_gemini_fails(monkeypatch) -> None:

@@ -15,6 +15,7 @@ from app.schemas.report import (
 )
 from app.services.benchmarks import build_benchmark
 from app.services.gemini import refine_report_language
+from app.services.items import build_item_timing_review
 
 
 ROLE_PROFILES = {
@@ -126,6 +127,7 @@ def generate_report(
         next_match_mission=_next_match_mission(metrics),
         timeline=_timeline(metrics),
         progress=_progress(metrics, previous_reports or []),
+        item_timing_review=build_item_timing_review(match, metrics),
         summary_note=_summary_note(metrics, main),
         reflection_prompt=_reflection_prompt(metrics, main),
     )
@@ -148,6 +150,7 @@ def _refine_with_gemini(report: CoachingReport) -> CoachingReport:
                 "training_plan": list(report.training_plan),
                 "summary_note": report.summary_note,
                 "reflection_prompt": report.reflection_prompt,
+                "item_timing_review": report.item_timing_review.model_dump() if report.item_timing_review else None,
             }
         )
     except Exception:
@@ -200,6 +203,21 @@ def _refine_with_gemini(report: CoachingReport) -> CoachingReport:
         report.summary_note = refined["summary_note"].strip()
     if isinstance(refined.get("reflection_prompt"), str) and refined["reflection_prompt"].strip():
         report.reflection_prompt = refined["reflection_prompt"].strip()
+
+    item_review = refined.get("item_timing_review")
+    if report.item_timing_review and isinstance(item_review, dict):
+        if isinstance(item_review.get("main_lesson"), str) and item_review["main_lesson"].strip():
+            report.item_timing_review.main_lesson = item_review["main_lesson"].strip()
+        if isinstance(item_review.get("next_match_item_lesson"), str) and item_review["next_match_item_lesson"].strip():
+            report.item_timing_review.next_match_item_lesson = item_review["next_match_item_lesson"].strip()
+        checkpoints = item_review.get("checkpoints")
+        if isinstance(checkpoints, list):
+            for index, checkpoint in enumerate(report.item_timing_review.checkpoints):
+                if index >= len(checkpoints) or not isinstance(checkpoints[index], dict):
+                    continue
+                advice = checkpoints[index].get("advice")
+                if isinstance(advice, str) and advice.strip():
+                    checkpoint.advice = advice.strip()
 
     return report
 

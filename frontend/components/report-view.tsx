@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ChevronDown,
   CircleDot,
+  ShieldAlert,
   ListChecks,
   RotateCcw,
   Target,
@@ -34,6 +35,7 @@ export function ReportView({
   const checklist = report.next_game_checklist ?? [];
   const practiceDrills = report.practice_drills ?? [];
   const primaryMistake = report.mistakes[0];
+  const itemReview = report.item_timing_review;
 
   return (
     <div className="page-stack">
@@ -139,6 +141,35 @@ export function ReportView({
         </section>
       ) : null}
 
+      {itemReview?.checkpoints?.length ? (
+        <section className="item-lesson-card">
+          <div className="item-lesson-header">
+            <div>
+              <span>Item timing lesson</span>
+              <h2>What your build had to answer</h2>
+              <p>{itemReview.main_lesson}</p>
+            </div>
+            <ShieldAlert size={28} aria-hidden />
+          </div>
+          <div className="item-checkpoint-grid">
+            {itemReview.checkpoints.slice(0, 3).map((checkpoint) => (
+              <article className="item-checkpoint" key={checkpoint.minute}>
+                <div className="item-checkpoint-title">
+                  <strong>{checkpoint.minute} min</strong>
+                  <StatusPill tone={checkpoint.confidence === "high" ? "good" : "neutral"}>
+                    {checkpoint.confidence} confidence
+                  </StatusPill>
+                </div>
+                <ItemPills label="Your items" items={checkpoint.player_items} tone="info" />
+                <ItemPills label="Enemy threats" items={checkpoint.enemy_key_items} tone="risk" />
+                <p>{checkpoint.advice}</p>
+              </article>
+            ))}
+          </div>
+          <strong className="item-next-lesson">{itemReview.next_match_item_lesson}</strong>
+        </section>
+      ) : null}
+
       <details className="full-breakdown">
         <summary>
           <span>
@@ -189,6 +220,31 @@ export function ReportView({
           Detailed event timing was not available for this match, so the report only uses confirmed final statistics.
         </section>
       )}
+
+      {itemReview?.checkpoints?.length ? (
+        <section className="section-block">
+          <div className="section-heading">
+            <span>Full item timing</span>
+            <h2>Confirmed item windows</h2>
+          </div>
+          <div className="item-detail-list">
+            {itemReview.checkpoints.map((checkpoint) => (
+              <article className="item-detail-row" key={`detail-${checkpoint.minute}`}>
+                <div>
+                  <strong>{checkpoint.minute} min</strong>
+                  <span>{checkpoint.enemy_threats.length ? checkpoint.enemy_threats.join(", ") : "No major enemy threat category"}</span>
+                </div>
+                <ItemPills label="Answers" items={checkpoint.player_answers} tone="good" />
+                <p>{checkpoint.advice}</p>
+              </article>
+            ))}
+          </div>
+          <section className="limitation-note">
+            <strong>Item timing limits</strong>
+            <p>{itemReview.limitations.join(" ")}</p>
+          </section>
+        </section>
+      ) : null}
 
       {report.match_story ? (
         <section className="coach-story">
@@ -381,5 +437,32 @@ function MetricCard({ label, value }: { label: string; value: string }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
+  );
+}
+
+function ItemPills({
+  label,
+  items,
+  tone
+}: {
+  label: string;
+  items: string[];
+  tone: "good" | "risk" | "info";
+}) {
+  return (
+    <div className="item-pill-group">
+      <span>{label}</span>
+      <div>
+        {items.length ? (
+          items.map((item) => (
+            <span className={`item-pill ${tone}`} key={item}>
+              {item}
+            </span>
+          ))
+        ) : (
+          <span className="item-pill muted">None confirmed</span>
+        )}
+      </div>
+    </div>
   );
 }
